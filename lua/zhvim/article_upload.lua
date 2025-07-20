@@ -1,37 +1,34 @@
 local M = {}
 
+--- @class html_content
+--- @field title string
+--- @field content string
+
+---Function to execute a curl command and return the response
+---@param curl_command string command to execute
+---@return string response
 local function execute_curl_command(curl_command)
   local handle = io.popen(curl_command)
-  local response = handle:read("*a")
-  handle:close()
-  return response
+  if handle == nil then
+    print("Error executing curl command: " .. curl_command)
+    return ""
+  else
+    local response = handle:read("*a")
+    handle:close()
+    return response
+  end
 end
 
-function M.init_draft(file_path, cookies)
-  local md_to_html = require("md_to_html")
+---Function to initialize a draft on Zhihu
+---@param html_content html_content HTML content of the article
+---@param cookies number Cookies for authentication
+---@return number|nil
+---@return string|nil
+function M.init_draft(html_content, cookies)
   local draft_url = "https://zhuanlan.zhihu.com/api/articles/drafts"
 
-  local file = io.open(file_path, "r")
-  if not file then
-    print("无法打开文件: " .. file_path)
-    return
-  end
-
-  local md_content = file:read("*a")
-  file:close()
-
-  local content
-  local success, err = pcall(function()
-    content = md_to_html.convert_md_to_html(md_content)
-  end)
-
-  if not success then
-    print("Markdown 转换为 HTML 失败: " .. err)
-    return
-  end
-
   local draft_body = {
-    title = "Test",
+    title = html_content.title,
     delta_time = 0,
     can_reward = false,
   }
@@ -58,39 +55,22 @@ function M.init_draft(file_path, cookies)
   local draft_response = vim.fn.json_decode(response)
 
   if draft_response and draft_response.id then
-    print("草稿创建成功，ID: " .. draft_response.id)
-    return draft_response.id, content
+    return draft_response.id, html_content.content
   else
-    print("草稿创建失败")
+    vim.notify("Error generating draf.", vim.log.levels.ERROR)
+    return nil, nil
   end
 end
 
-function M.update_draft(draft_id, file_path, cookies)
-  local md_to_html = require("md_to_html")
+---Function to update a draft on Zhihu
+---@param draft_id number
+---@param html_content html_content
+---@param cookies number
+function M.update_draft(draft_id, html_content, cookies)
   local patch_url = string.format("https://zhuanlan.zhihu.com/api/articles/%s/draft", draft_id)
-
-  local file = io.open(file_path, "r")
-  if not file then
-    print("无法打开文件: " .. file_path)
-    return
-  end
-
-  local md_content = file:read("*a")
-  file:close()
-
-  local content
-  local success, err = pcall(function()
-    content = md_to_html.convert_md_to_html(md_content)
-  end)
-
-  if not success then
-    print("Markdown 转换为 HTML 失败: " .. err)
-    return
-  end
-
   local patch_body = {
-    title = "Test",
-    content = content,
+    title = html_content.title,
+    content = html_content.content,
     table_of_contents = false,
     delta_time = 30,
     can_reward = false,
@@ -116,9 +96,9 @@ function M.update_draft(draft_id, file_path, cookies)
 
   local response = execute_curl_command(curl_command)
   if response then
-    print("草稿更新成功")
+    vim.notify("Updated draft successfully.", vim.log.levels.INFO)
   else
-    print("草稿更新失败")
+    vim.notify("Error updating draft.", vim.log.levels.ERROR)
   end
 end
 
