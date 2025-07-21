@@ -69,13 +69,14 @@ def md_to_html(md_content: str) -> str:
             sup["data-draft-type"] = "reference"
 
     for heading in soup.find_all(["h1", "h2", "h3"]):
+        heading["style"] = "display: inline;"
         if heading.name == "h1":
             heading.name = "h2"
         elif heading.name == "h2":
             heading.name = "h3"
         else:
             strong_tag = soup.new_tag("strong")
-            strong_tag.string = heading.text
+            strong_tag.string = heading.text.strip()
             heading.clear()
             heading.append(strong_tag)
             heading.name = "p"
@@ -87,10 +88,26 @@ def md_to_html(md_content: str) -> str:
 
     for p_tag in soup.find_all("p"):
         p_tag.unwrap()
+    # HACK: HTML in Zhihu is a mess, we need to clean it up by: 1. Replacing all the newlines with <br> 2. Not use <p> tags 3. Not use <br> tags after <h1>, <h2>, <h3> tags and <blockquote> tags
+    result = []
 
-    out = str(soup)
+    for element in soup.children:
+        if isinstance(element, str):
+            if element.strip():
+                result.append(element.replace("\n", "<br>"))
+        elif element.name in ["h1", "h2", "h3"]:
+            result.append(str(element))
+            result.append(element.text.strip())
+            result.append("<br>")
+        elif element.name == "blockquote":
+            result.append(f"<blockquote>{element.text.strip()}</blockquote>")
+        elif element.name == "p":
+            content = "".join(str(child) for child in element.children)
+            result.append(f"{content}<br>")
+        else:
+            result.append(str(element).replace("\n", "<br>"))
 
-    return out
+    return "".join(result)
 
 
 def convert_md_to_html(md_content: str) -> str:
@@ -126,7 +143,7 @@ if __name__ == "__main__":
                 "Invalid input: 'content' and 'title' fields are required in 'markdown'."
             )
 
-        html_output = convert_md_to_html(content)
+        html_output = convert_md_to_html(content).replace("\n", "<br>")
         print(json.dumps({"content": html_output, "title": title}))
     except Exception as e:
         print(json.dumps({"error": str(e)}))
