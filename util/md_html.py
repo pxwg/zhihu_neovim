@@ -97,7 +97,7 @@ def md_to_html(md_content: str) -> str:
                 result.append(element.replace("\n", "<br>"))
         elif element.name in ["h1", "h2", "h3"]:
             result.append(str(element))
-            result.append("<br>")
+            # result.append("<br>") # Not adding <br> after headings
         elif element.name == "blockquote":
             result.append(f"<blockquote>{element.text.strip()}</blockquote><br>")
         else:
