@@ -1,3 +1,4 @@
 html_rule/
 tests_py/
 .venv/
+doc_test/

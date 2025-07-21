@@ -91,19 +91,15 @@ def md_to_html(md_content: str) -> str:
     # HACK: HTML in Zhihu is a mess, we need to clean it up by: 1. Replacing all the newlines with <br> 2. Not use <p> tags 3. Not use <br> tags after <h1>, <h2>, <h3> tags and <blockquote> tags
     result = []
 
-    for element in soup.children:
+    for element in soup.contents:
         if isinstance(element, str):
             if element.strip():
                 result.append(element.replace("\n", "<br>"))
         elif element.name in ["h1", "h2", "h3"]:
             result.append(str(element))
-            result.append(element.text.strip())
             result.append("<br>")
         elif element.name == "blockquote":
-            result.append(f"<blockquote>{element.text.strip()}</blockquote>")
-        elif element.name == "p":
-            content = "".join(str(child) for child in element.children)
-            result.append(f"{content}<br>")
+            result.append(f"<blockquote>{element.text.strip()}</blockquote><br>")
         else:
             result.append(str(element).replace("\n", "<br>"))
 
