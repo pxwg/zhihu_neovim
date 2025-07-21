@@ -13,6 +13,12 @@ return {
 }
 ```
 
+## Usage
+
+- Open a local markdown file in neovim;
+- Saving your cookie in global variable `$ZHIVIM_COOKIES` or `vim.g.zhvim_cookies `, this plugin will use it to authenticate your zhihu account and never share it with anyone;
+- Run `:ZhnvimInitDraft` to int/update the draft.
+
 ## Value
 - Convert local markdown files into Zhihu articles and send them to the draft box.
 
