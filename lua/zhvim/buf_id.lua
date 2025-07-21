@@ -1,5 +1,6 @@
 local M = {}
 
+--- TODO: Support windows which do not have `stat` command
 local id_file = vim.fn.stdpath("data") .. "/zhvim_buf_ids.json"
 
 ---Load IDs from the JSON file

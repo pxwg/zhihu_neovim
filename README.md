@@ -24,6 +24,7 @@ return {
 - Convert local markdown files into Zhihu articles and send them to the draft box.
 
 ## To-do
+- Support for Windows;
 - Support editing Zhihu answers;
 - Support direct publishing of Zhihu articles and answers (bypassing the draft box);
 - Add [blink-cmp](https://github.com/Saghen/blink.cmp) to auto complete @(user name list) and # tags (c.f.: [zhihu_obsidian](https://github.com/dongguaguaguagua/zhihu_obsidian)).
