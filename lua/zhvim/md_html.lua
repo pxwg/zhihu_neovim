@@ -38,6 +38,7 @@ function M.convert_md_to_html(md_content)
     return { title = "", content = "" }, result.error
   end
 
+  -- print(result.content)
   return {
     title = result.title or "",
     content = result.content or "",

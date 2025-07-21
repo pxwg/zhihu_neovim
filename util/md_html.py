@@ -86,8 +86,6 @@ def md_to_html(md_content: str) -> str:
             blockquote.clear()
             blockquote.name = "p"
 
-    for p_tag in soup.find_all("p"):
-        p_tag.unwrap()
     # HACK: HTML in Zhihu is a mess, we need to clean it up by: 1. Replacing all the newlines with <br> 2. Not use <p> tags 3. Not use <br> tags after <h1>, <h2>, <h3> tags and <blockquote> tags
     result = []
 
@@ -99,7 +97,12 @@ def md_to_html(md_content: str) -> str:
             result.append(str(element))
             # result.append("<br>") # Not adding <br> after headings
         elif element.name == "blockquote":
-            result.append(f"<blockquote>{element.text.strip()}</blockquote><br>")
+            result.append(f"<blockquote>{element.text.strip()}</blockquote>")
+        elif element.name in ["ul", "ol"]:
+            list_content = ""
+            for li in element.find_all("li", recursive=False):
+                list_content += f"<li>{li.text.strip()}</li>"
+            result.append(f"<{element.name}>{list_content}</{element.name}>")
         else:
             result.append(str(element).replace("\n", "<br>"))
 
