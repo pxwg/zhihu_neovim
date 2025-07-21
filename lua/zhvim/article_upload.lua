@@ -8,27 +8,25 @@ local M = {}
 ---@param curl_command string command to execute
 ---@return string response
 local function execute_curl_command(curl_command)
-  local handle = io.popen(curl_command)
-  if handle == nil then
+  local response = vim.fn.system(curl_command)
+  if vim.v.shell_error ~= 0 then
     print("Error executing curl command: " .. curl_command)
     return ""
-  else
-    local response = handle:read("*a")
-    handle:close()
-    return response
   end
+  return response
 end
 
 ---Function to initialize a draft on Zhihu
 ---@param html_content html_content HTML content of the article
 ---@param cookies number Cookies for authentication
----@return number|nil
+---@return string|nil
 ---@return string|nil
 function M.init_draft(html_content, cookies)
   local draft_url = "https://zhuanlan.zhihu.com/api/articles/drafts"
 
   local draft_body = {
     title = html_content.title,
+    content = html_content.content,
     delta_time = 0,
     can_reward = false,
   }
@@ -42,7 +40,7 @@ function M.init_draft(html_content, cookies)
   }
 
   local curl_command = string.format(
-    [[curl -X POST %s -H "%s" -H "%s" -H "%s" -H "%s" -d '%s']],
+    [[curl -s -X POST %s -H "%s" -H "%s" -H "%s" -H "%s" -d '%s']],
     draft_url,
     headers[1],
     headers[2],
@@ -63,7 +61,7 @@ function M.init_draft(html_content, cookies)
 end
 
 ---Function to update a draft on Zhihu
----@param draft_id number
+---@param draft_id string ID of the draft to update
 ---@param html_content html_content
 ---@param cookies number
 function M.update_draft(draft_id, html_content, cookies)
@@ -85,7 +83,7 @@ function M.update_draft(draft_id, html_content, cookies)
   }
 
   local curl_command = string.format(
-    [[curl -X PATCH %s -H "%s" -H "%s" -H "%s" -H "%s" -d '%s']],
+    [[curl -s -X PATCH %s -H "%s" -H "%s" -H "%s" -H "%s" -d '%s']],
     patch_url,
     headers[1],
     headers[2],
