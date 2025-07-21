@@ -68,8 +68,7 @@ local function open_draft()
   local file_id = buf_id.check_id(filepath)
   if file_id then
     vim.api.nvim_echo({ { "Draft ID: " .. file_id, "Msg" } }, true, {})
-    local url = "https://www.zhihu.com/api/v4/drafts/" .. file_id
-
+    local url = "https://zhuanlan.zhihu.com/p/" .. file_id .. "/edit"
     local sysname = vim.loop.os_uname().sysname
     if sysname == "Windows_NT" then
       vim.fn.system({ "start", url })
