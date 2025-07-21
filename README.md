@@ -18,7 +18,8 @@ return {
 
 ## To-do
 - Support editing Zhihu answers;
-- Support direct publishing of Zhihu articles and answers (bypassing the draft box).
+- Support direct publishing of Zhihu articles and answers (bypassing the draft box);
+- Add [blink-cmp](https://github.com/Saghen/blink.cmp) to auto complete @(user name list) and # tags (c.f.: [zhihu_obsidian](https://github.com/dongguaguaguagua/zhihu_obsidian)).
 
 ## No-Value
 - Reading Zhihu articles in neovim.
