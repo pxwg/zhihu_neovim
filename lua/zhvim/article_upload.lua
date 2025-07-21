@@ -18,7 +18,7 @@ end
 
 ---Function to initialize a draft on Zhihu
 ---@param html_content html_content HTML content of the article
----@param cookies number Cookies for authentication
+---@param cookies string Cookies for authentication
 ---@return string|nil
 ---@return string|nil
 function M.init_draft(html_content, cookies)
