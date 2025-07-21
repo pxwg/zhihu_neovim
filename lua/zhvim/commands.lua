@@ -54,6 +54,7 @@ local function init_draft(opts)
   end
 end
 
+--- TODO: modifiable commands to open draft by passing key 'cmd' in config
 local function open_draft()
   local filepath = vim.api.nvim_buf_get_name(0)
   if filepath == "" then
