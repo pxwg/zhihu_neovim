@@ -30,7 +30,7 @@ end
 ---@param filepath string
 ---@return string|nil
 local function get_inode(filepath)
-  local handle = io.popen("stat " .. filepath)
+  local handle = io.popen("ls -i " .. filepath)
   if not handle then
     vim.notify("Failed to get inode for " .. filepath, vim.log.levels.ERROR)
     return nil
