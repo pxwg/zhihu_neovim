@@ -10,7 +10,8 @@ local M = {}
 local function execute_curl_command(curl_command)
   local response = vim.fn.system(curl_command)
   if vim.v.shell_error ~= 0 then
-    print("Error executing curl command: " .. curl_command)
+    local error_message = table.concat(vim.fn.systemlist(curl_command), "\n")
+    vim.notify("Error executing curl command:\n" .. error_message, vim.log.levels.ERROR)
     return ""
   end
   return response

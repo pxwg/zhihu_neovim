@@ -37,7 +37,7 @@ local function get_inode(filepath)
   end
   local result = handle:read("*a")
   handle:close()
-  return result:match("%d+")
+  return result:match("^(%d+)")
 end
 
 ---Save IDs to the JSON file
