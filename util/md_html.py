@@ -2,6 +2,7 @@ import re
 import json
 import sys
 import mistune
+import html as html_core
 from mistune.plugins.math import math
 from bs4 import BeautifulSoup
 
@@ -98,15 +99,20 @@ def md_to_html(md_content: str) -> str:
             # result.append("<br>") # Not adding <br> after headings
         elif element.name == "blockquote":
             result.append(f"<blockquote>{element.text.strip()}</blockquote>")
-        elif element.name in ["ul", "ol"]:
-            list_content = ""
             for li in element.find_all("li", recursive=False):
+                # For blockquote with lists, we want to preserve the list items but not the <br> tag
                 list_content += f"<li>{li.text.strip()}</li>"
-            result.append(f"<{element.name}>{list_content}</{element.name}>")
+                result.append(f"<{element.name}>{list_content}</{element.name}>")
+        elif element.name == "p":
+            # For paragraphs, we want to preserve the content but not the p tags
+            inner_content = "".join(str(child) for child in element.contents)
+            result.append(inner_content)
+            result.append("<br>")
         else:
-            result.append(str(element).replace("\n", "<br>"))
+            result.append(str(element))
 
-    return "".join(result)
+    result_string = "".join(result).replace("\n", "<br>")
+    return result_string
 
 
 def convert_md_to_html(md_content: str) -> str:

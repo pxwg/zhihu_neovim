@@ -10,8 +10,11 @@ local M = {}
 local function execute_curl_command(curl_command)
   local response = vim.fn.system(curl_command)
   if vim.v.shell_error ~= 0 then
-    local error_message = table.concat(vim.fn.systemlist(curl_command), "\n")
-    vim.notify("Error executing curl command:\n" .. error_message, vim.log.levels.ERROR)
+    local error_message = table.concat(vim.fn.systemlist(curl_command))
+    vim.notify(
+      "Error executing curl command: " .. curl_command .. "\n Error message: " .. error_message,
+      vim.log.levels.ERROR
+    )
     return ""
   end
   return response
@@ -32,7 +35,8 @@ function M.init_draft(html_content, cookies)
     can_reward = false,
   }
 
-  local draft_body_json = vim.fn.json_encode(draft_body)
+  -- Filter out illegal characters from the content
+  local draft_body_json = vim.fn.json_encode(draft_body):gsub("'", "'\\''")
   local headers = {
     "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
     "Content-Type: application/json",
@@ -56,7 +60,7 @@ function M.init_draft(html_content, cookies)
   if draft_response and draft_response.id then
     return draft_response.id, html_content.content
   else
-    vim.notify("Error generating draf.", vim.log.levels.ERROR)
+    vim.notify("Error generating draft.", vim.log.levels.ERROR)
     return nil, nil
   end
 end
