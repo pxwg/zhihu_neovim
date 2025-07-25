@@ -12,7 +12,7 @@ def parse_html(html_content, article_id=""):
     if content_ele and writer_info_ele and question_title_ele:
         writer_name = writer_info_ele.get_text(strip=True) or "知乎用户"
         title = question_title_ele.get_text(strip=True) or f"知乎文章{article_id}"
-        content = content_ele.get_text(strip=True)
+        content = str(content_ele)
         return {"title": title, "content": content, "writer_name": writer_name}
     else:
         return {"title": "", "content": "", "writer_name": ""}
