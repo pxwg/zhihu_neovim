@@ -95,7 +95,6 @@ local function sync_article()
   end
   local url = url_template .. file_id
   local output = sync.download_zhihu_article(url, cookies)
-  print(output)
   local html_content = md.parse_zhihu_article(output)
   html_content.content = md.convert_html_to_md(html_content.content)
 
