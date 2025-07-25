@@ -55,6 +55,18 @@ def md_to_html(md_content: str) -> str:
         )
         div.replace_with(img_tag)
 
+    # Handle inline code (`xxx`)
+    for code in soup.find_all("code"):
+        # Skip code blocks that are inside pre tags (those are block code, not inline)
+        if code.parent.name != "pre":
+            # Create a span with appropriate styling for inline code
+            code_span = soup.new_tag("span")
+            code_span["style"] = (
+                "background-color: rgba(0, 0, 0, 0.06); padding: 2px 4px; border-radius: 3px; font-family: monospace;"
+            )
+            code_span.string = code.text
+            code.replace_with(code_span)
+
     for pre in soup.find_all("pre"):
         lang = pre.get("lang", "")
         pre["lang"] = lang

@@ -4,6 +4,7 @@ local html = require("zhvim.md_html")
 local md = require("zhvim.html_md")
 local sync = require("zhvim.article_sync")
 local upl = require("zhvim.article_upload")
+local util = require("zhvim.util")
 local cookies = vim.env.ZHIVIM_COOKIES or vim.g.zhvim_cookies
 
 ---Initializes a draft for the current buffer.
@@ -14,7 +15,6 @@ local function init_draft(opts)
     return
   end
 
-  local content = vim.api.nvim_buf_get_lines(0, 0, -1, false)
   local filepath = vim.api.nvim_buf_get_name(0)
   if filepath == "" then
     vim.api.nvim_echo(
@@ -25,7 +25,8 @@ local function init_draft(opts)
     return
   end
 
-  local title = vim.fn.fnamemodify(filepath, ":t:r")
+  local title, _ = util.get_markdown_title(0)
+  local content = vim.api.nvim_buf_get_lines(0, 1, -1, false)
   if opts and opts.fargs and #opts.fargs > 0 then
     title = opts.fargs[1]
   end
