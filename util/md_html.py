@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 
 def md_to_html(md_content: str) -> str:
     """
-      Convert Markdown content to HTML with specific formatting for Zhihu platform.
+    Convert Markdown content to HTML with specific formatting for Zhihu platform.
     Args:
       md_content (str): The Markdown content to convert.
     Returns:
@@ -20,6 +20,21 @@ def md_to_html(md_content: str) -> str:
     html = markdown(md_content)
     soup = BeautifulSoup(html, "html.parser")
 
+    # Process special elements
+    _process_links(soup)
+    _process_images_and_math(soup)
+    _process_code_blocks(soup)
+    _process_tables(soup)
+    _process_references(soup)
+    _process_headings(soup)
+    _process_blockquotes(soup)
+
+    # Convert the processed soup to Zhihu-compatible HTML
+    return _convert_to_zhihu_html(soup)
+
+
+def _process_links(soup):
+    """Process links for Zhihu format."""
     for link in soup.find_all("a"):
         title = link.get("title", "")
         href = link.get("href", "")
@@ -33,6 +48,10 @@ def md_to_html(md_content: str) -> str:
             link["href"] = f"/people/{people_id}"
             link["data-hash"] = hash_value
 
+
+def _process_images_and_math(soup):
+    """Process images and math equations."""
+    # Handle images
     for img in soup.find_all("img"):
         if img.get("alt") == "math":
             eq = str(img.get("src", "")).replace("tex=", "")
@@ -40,7 +59,7 @@ def md_to_html(md_content: str) -> str:
             img["src"] = f"//www.zhihu.com/equation?tex={eq}"
             img["alt"] = eq.replace("\n", " ")
 
-    # Handle inline math ($xxx$) and block math ($$xxx$$)
+    # Handle inline math ($xxx$)
     for span in soup.find_all("span", class_="math"):
         eq = re.sub(r"^\\\(|\\\)$", "", span.text)
         img_tag = soup.new_tag(
@@ -48,6 +67,7 @@ def md_to_html(md_content: str) -> str:
         )
         span.replace_with(img_tag)
 
+    # Handle block math ($$xxx$$)
     for div in soup.find_all("div", class_="math"):
         eq = str(div.text).strip(r"$$").strip("\n") + "\\\\"
         img_tag = soup.new_tag(
@@ -55,32 +75,42 @@ def md_to_html(md_content: str) -> str:
         )
         div.replace_with(img_tag)
 
+
+def _process_code_blocks(soup):
+    """Process code blocks and inline code."""
     # Handle inline code (`xxx`)
     for code in soup.find_all("code"):
         # Skip code blocks that are inside pre tags (those are block code, not inline)
         if code.parent.name != "pre":
-            # Create a span with appropriate styling for inline code
-            code_span = soup.new_tag("span")
-            code_span["style"] = (
-                "background-color: rgba(0, 0, 0, 0.06); padding: 2px 4px; border-radius: 3px; font-family: monospace;"
-            )
-            code_span.string = code.text
-            code.replace_with(code_span)
+            # Wrap inline code with <code> tags
+            code_tag = soup.new_tag("code")
+            code_tag.string = code.text
+            code.replace_with(code_tag)
 
+    # Handle code blocks
     for pre in soup.find_all("pre"):
         lang = pre.get("lang", "")
         pre["lang"] = lang
 
+
+def _process_tables(soup):
+    """Process tables."""
     for table in soup.find_all("table"):
         table["data-draft-node"] = "block"
         table["data-draft-type"] = "table"
         table["data-size"] = "normal"
 
+
+def _process_references(soup):
+    """Process reference elements."""
     for sup in soup.find_all("sup"):
         if sup.get("data-numero"):
             sup["data-draft-node"] = "inline"
             sup["data-draft-type"] = "reference"
 
+
+def _process_headings(soup):
+    """Process heading elements."""
     for heading in soup.find_all(["h1", "h2", "h3"]):
         heading["style"] = "display: inline;"
         if heading.name == "h1":
@@ -94,34 +124,70 @@ def md_to_html(md_content: str) -> str:
             heading.append(strong_tag)
             heading.name = "p"
 
+
+def _process_blockquotes(soup):
+    """Process blockquote elements."""
     for blockquote in soup.find_all("blockquote"):
         if blockquote.get("data-callout-type") in ["ignore", "忽略", "注释"]:
             blockquote.clear()
             blockquote.name = "p"
 
-    # HACK: HTML in Zhihu is a mess, we need to clean it up by: 1. Replacing all the newlines with <br> 2. Not use <p> tags 3. Not use <br> tags after <h1>, <h2>, <h3> tags and <blockquote> tags
+
+def _convert_to_zhihu_html(soup):
+    """Convert the processed soup to Zhihu-compatible HTML."""
     result = []
+    current_list_type = None
 
     for element in soup.contents:
         if isinstance(element, str):
             if element.strip():
                 result.append(element.replace("\n", "<br>"))
         elif element.name in ["h1", "h2", "h3"]:
+            # Close any open list before adding a heading
+            if current_list_type:
+                result.append(f"</{current_list_type}>")
+                current_list_type = None
             result.append(str(element))
-            # result.append("<br>") # Not adding <br> after headings
         elif element.name == "blockquote":
-            result.append(f"<blockquote>{element.text.strip()}</blockquote>")
-            for li in element.find_all("li", recursive=False):
-                # For blockquote with lists, we want to preserve the list items but not the <br> tag
-                list_content += f"<li>{li.text.strip()}</li>"
-                result.append(f"<{element.name}>{list_content}</{element.name}>")
+            # Close any open list before adding a blockquote
+            if current_list_type:
+                result.append(f"</{current_list_type}>")
+                current_list_type = None
+            result.append(str(element))
         elif element.name == "p":
-            # For paragraphs, we want to preserve the content but not the p tags
+            # Close any open list before adding a paragraph
+            if current_list_type:
+                result.append(f"</{current_list_type}>")
+                current_list_type = None
+            # For paragraphs, preserve the content but not the p tags
             inner_content = "".join(str(child) for child in element.contents)
             result.append(inner_content)
             result.append("<br>")
+        elif element.name in ["ul", "ol"]:
+            # Handle lists properly
+            list_type = element.name
+            if current_list_type != list_type:
+                if current_list_type:
+                    result.append(f"</{current_list_type}>")
+                result.append(f"<{list_type}>")
+                current_list_type = list_type
+
+            # Process all list items in this list - preserve HTML inside list items
+            for li in element.find_all("li", recursive=False):
+                # Use str(li) to preserve all HTML inside the list item
+                # But we need to extract just the inner content without the li tags
+                inner_content = "".join(str(child) for child in li.contents)
+                result.append(f'<li data-pid="IHzdErLB">{inner_content}</li>')
         else:
+            # Close any open list before adding other elements
+            if current_list_type and element.name not in ["li"]:
+                result.append(f"</{current_list_type}>")
+                current_list_type = None
             result.append(str(element))
+
+    # Close any open list at the end
+    if current_list_type:
+        result.append(f"</{current_list_type}>")
 
     result_string = "".join(result).replace("\n", "<br>")
     return result_string
