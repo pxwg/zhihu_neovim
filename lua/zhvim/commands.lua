@@ -1,12 +1,14 @@
 local M = {}
 local buf_id = require("zhvim.buf_id")
 local html = require("zhvim.md_html")
+local md = require("zhvim.html_md")
+local sync = require("zhvim.article_sync")
 local upl = require("zhvim.article_upload")
+local cookies = vim.env.ZHIVIM_COOKIES or vim.g.zhvim_cookies
 
 ---Initializes a draft for the current buffer.
 ---@param opts table? Options for the command
 local function init_draft(opts)
-  local cookies = vim.env.ZHIVIM_COOKIES or vim.g.zhvim_cookies
   if not cookies or cookies == "" then
     vim.api.nvim_echo({ { "Please set zhvim_cookies before using this command.", "ErrorMsg" } }, true, { err = true })
     return
@@ -83,10 +85,32 @@ local function open_draft()
   end
 end
 
+local function sync_article()
+  local filepath = vim.api.nvim_buf_get_name(0)
+  local url_template = "https://zhuanlan.zhihu.com/p/"
+  local file_id = buf_id.check_id(filepath)
+  if not file_id then
+    vim.api.nvim_echo({ { "No draft ID found for this file.", "ErrorMsg" } }, true, {})
+    return
+  end
+  local url = url_template .. file_id
+  local output = sync.download_zhihu_article(url, cookies)
+  local html_content = md.parse_zhihu_article(output)
+  html_content.content = md.convert_html_to_md(html_content.content)
+
+  vim.api.nvim_command("new")
+  vim.api.nvim_set_option_value("buftype", "nofile", { buf = 0 }) -- Set buffer as nofile
+  vim.api.nvim_set_option_value("filetype", "markdown", { buf = 0 }) -- Set buffer type to markdown
+  local title = html_content.title:gsub(" - 知乎", "") or "Untitled"
+  local lines = { "# " .. title, "", unpack(vim.split(html_content.content, "\n")) }
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+end
+
 --- Module for setting up commands
 function M.setup_commands()
   vim.api.nvim_create_user_command("ZhihuDraft", init_draft, { nargs = "*", complete = "file" })
   vim.api.nvim_create_user_command("ZhihuOpen", open_draft, {})
+  vim.api.nvim_create_user_command("ZhihuSync", sync_article, {})
 end
 
 return M
