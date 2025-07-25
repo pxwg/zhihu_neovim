@@ -2,6 +2,7 @@ local M = {}
 local buf_id = require("zhvim.buf_id")
 local html = require("zhvim.md_html")
 local upl = require("zhvim.article_upload")
+local util = require("zhvim.util")
 
 ---Initializes a draft for the current buffer.
 ---@param opts table? Options for the command
@@ -12,7 +13,6 @@ local function init_draft(opts)
     return
   end
 
-  local content = vim.api.nvim_buf_get_lines(0, 0, -1, false)
   local filepath = vim.api.nvim_buf_get_name(0)
   if filepath == "" then
     vim.api.nvim_echo(
@@ -23,7 +23,8 @@ local function init_draft(opts)
     return
   end
 
-  local title = vim.fn.fnamemodify(filepath, ":t:r")
+  local title, _ = util.get_markdown_title(0)
+  local content = vim.api.nvim_buf_get_lines(0, 1, -1, false)
   if opts and opts.fargs and #opts.fargs > 0 then
     title = opts.fargs[1]
   end
