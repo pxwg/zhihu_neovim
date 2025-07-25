@@ -20,6 +20,16 @@ def html_to_md(html_file_path: str) -> str:
     soup = BeautifulSoup(html_content, "html.parser")
     footnotes = {}
 
+    for code in soup.find_all("code"):
+        # Skip code tags inside pre tags (they're handled separately)
+        if code.parent and code.parent.name == "pre":
+            continue
+
+        # Convert inline code to `code`
+        code_text = code.get_text()
+        md_code = f"`{code_text}`"
+        code.replace_with(md_code)
+
     # Convert math images to $formula$ or $$formula$$
     for img in soup.find_all("img", class_="ztext-math"):
         alt = img.get("data-tex", "").strip()
@@ -69,7 +79,7 @@ def html_to_md(html_file_path: str) -> str:
     # Convert headings to Markdown with consistent spacing
     for heading in soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"]):
         level = int(heading.name[1])
-        md_heading = f"\n\n{'#' * level} {heading.get_text(strip=True)}\n\n"
+        md_heading = f"\n\n{'#' * (level - 1)} {heading.get_text(strip=True)}\n\n"
         heading.replace_with(md_heading)
 
     # Convert <sup data-numero="...">[1]</sup> to footnotes

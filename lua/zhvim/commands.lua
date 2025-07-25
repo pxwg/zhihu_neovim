@@ -95,15 +95,16 @@ local function sync_article()
   end
   local url = url_template .. file_id
   local output = sync.download_zhihu_article(url, cookies)
+  print(output)
   local html_content = md.parse_zhihu_article(output)
-  -- print(html_content.content)
   html_content.content = md.convert_html_to_md(html_content.content)
 
   vim.api.nvim_command("new")
-  vim.api.nvim_buf_set_option(0, "buftype", "nofile") -- Set buffer as nofile
-  vim.api.nvim_buf_set_option(0, "filetype", "markdown") -- Set buffer type to markdown
-  vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(html_content.content, "\n"))
-  vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(html_content.content, "\n"))
+  vim.api.nvim_set_option_value("buftype", "nofile", { buf = 0 }) -- Set buffer as nofile
+  vim.api.nvim_set_option_value("filetype", "markdown", { buf = 0 }) -- Set buffer type to markdown
+  local title = html_content.title:gsub(" - 知乎", "") or "Untitled"
+  local lines = { "# " .. title, "", unpack(vim.split(html_content.content, "\n")) }
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
 end
 
 --- Module for setting up commands
