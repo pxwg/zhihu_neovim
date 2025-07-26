@@ -107,7 +107,11 @@ local function sync_article()
   vim.bo[buf].bufhidden = "hide"
   vim.bo[buf].swapfile = false
   vim.bo[buf].filetype = "markdown"
-  vim.api.nvim_buf_set_name(buf, "Zhihu")
+  local existing_buf = vim.fn.bufnr("Zhihu: " .. file_id)
+  if existing_buf ~= -1 then
+    vim.api.nvim_buf_delete(existing_buf, { force = true })
+  end
+  vim.api.nvim_buf_set_name(buf, "Zhihu: " .. file_id)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(zhihu_content, "\n"))
   vim.api.nvim_set_current_buf(buf)
 
