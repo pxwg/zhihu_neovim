@@ -51,6 +51,34 @@ def html_to_md(html_file_path: str) -> str:
             md_math = f"$ {tex} $"
         span.replace_with(md_math)
 
+    # Convert ordered and unordered lists to Markdown lists
+    def convert_list_items(tag, prefix="* ", start=1):
+        md_list = ""
+        counter = start
+        for li in tag.find_all("li", recursive=False):
+            content = li.get_text(strip=True)
+            if prefix.startswith("1. "):
+                md_list += f"{counter}. {content}\n"
+                counter += 1
+            else:
+                md_list += f"{prefix}{content}\n"
+            # Handle nested lists
+            for child in li.find_all(["ul", "ol"], recursive=False):
+                if child.name == "ul":
+                    nested_prefix = "  * "
+                    md_list += convert_list_items(child, prefix=nested_prefix)
+                elif child.name == "ol":
+                    md_list += convert_list_items(child, prefix="  1. ", start=1)
+        return md_list
+
+    for ul in soup.find_all("ul"):
+        md_ul = convert_list_items(ul, prefix="- ")
+        ul.replace_with(md_ul)
+
+    for ol in soup.find_all("ol"):
+        md_ol = convert_list_items(ol, prefix="1. ", start=1)
+        ol.replace_with(md_ol)
+
     # Convert <pre> with lang attribute to ```language code blocks
     for pre in soup.find_all("pre"):
         lang = pre.get("lang", "")
