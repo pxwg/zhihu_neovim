@@ -98,13 +98,20 @@ local function sync_article()
   local output = sync.download_zhihu_article(url, cookies)
   local html_content = md.parse_zhihu_article(output)
   html_content.content = md.convert_html_to_md(html_content.content)
+  html_content.title = html_content.title:gsub(" -- 知乎$", "") or "Untitled"
+  local zhihu_content = "# " .. html_content.title .. "\n\n" .. html_content.content
 
-  vim.api.nvim_command("new")
-  vim.api.nvim_set_option_value("buftype", "nofile", { buf = 0 }) -- Set buffer as nofile
-  vim.api.nvim_set_option_value("filetype", "markdown", { buf = 0 }) -- Set buffer type to markdown
-  local title = html_content.title:gsub(" - 知乎", "") or "Untitled"
-  local lines = { "# " .. title, "", unpack(vim.split(html_content.content, "\n")) }
-  vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+  local buf = vim.api.nvim_create_buf(true, true)
+  vim.cmd("split")
+  vim.bo[buf].buftype = "nofile"
+  vim.bo[buf].bufhidden = "hide"
+  vim.bo[buf].swapfile = false
+  vim.bo[buf].filetype = "markdown"
+  vim.api.nvim_buf_set_name(buf, "Zhihu")
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(zhihu_content, "\n"))
+  vim.api.nvim_set_current_buf(buf)
+
+  vim.cmd("windo diffthis")
 end
 
 --- Module for setting up commands
