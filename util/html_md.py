@@ -56,12 +56,26 @@ def html_to_md(html_file_path: str) -> str:
         md_list = ""
         counter = start
         for li in tag.find_all("li", recursive=False):
-            content = li.get_text(strip=True)
+            # Extract content while preserving links
+            content = ""
+            for child in li.children:
+                if child.name == "a":  # Convert <a> to Markdown links
+                    href = child.get("href", "")
+                    text = child.get_text(strip=True)
+                    content += f"[{text}]({href})"
+                else:  # Handle plain text or other elements
+                    content += (
+                        child.get_text(strip=True)
+                        if hasattr(child, "get_text")
+                        else str(child)
+                    )
+
             if prefix.startswith("1. "):
                 md_list += f"{counter}. {content}\n"
                 counter += 1
             else:
                 md_list += f"{prefix}{content}\n"
+
             # Handle nested lists
             for child in li.find_all(["ul", "ol"], recursive=False):
                 if child.name == "ul":
