@@ -115,7 +115,9 @@ local function sync_article()
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(zhihu_content, "\n"))
   vim.api.nvim_set_current_buf(buf)
 
-  vim.cmd("windo diffthis")
+  if #vim.api.nvim_tabpage_list_wins(0) == 2 then
+    vim.cmd("windo diffthis")
+  end
 end
 
 --- Module for setting up commands
