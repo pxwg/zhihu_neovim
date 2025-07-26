@@ -41,6 +41,16 @@ def html_to_md(html_file_path: str) -> str:
             md_math = f"$ {alt} $"
         img.replace_with(md_math)
 
+    for span in soup.find_all("span", class_="ztext-math"):
+        tex = span.get("data-tex", "").strip()
+        if tex.endswith("\\\\"):
+            # Display math (block)
+            md_math = f"\n\n$$\n {tex[:-2]}\n$$\n\n"
+        else:
+            # Inline math (no extra spacing)
+            md_math = f"$ {tex} $"
+        span.replace_with(md_math)
+
     # Convert <pre> with lang attribute to ```language code blocks
     for pre in soup.find_all("pre"):
         lang = pre.get("lang", "")
