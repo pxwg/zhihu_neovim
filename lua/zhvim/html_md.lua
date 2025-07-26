@@ -21,7 +21,6 @@ end
 ---@return string|nil error
 function M.parse_zhihu_article(html_content)
   if html_content == nil then
-    vim.notify("Invalid HTML content provided.", vim.log.levels.ERROR)
     return {}, "Invalid HTML content."
   end
   local plugin_root = get_plugin_root()
