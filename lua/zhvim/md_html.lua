@@ -19,7 +19,7 @@ end
 ---@param md_content string Markdown content to be processed
 ---@param cookies string Authentication cookies for Zhihu API
 ---@return string Updated Markdown content with new image links
-function M.upload_md_images(md_content, cookies)
+function M.update_md_images(md_content, cookies)
   local bufnr = vim.api.nvim_get_current_buf()
   local parser = vim.treesitter.get_parser(bufnr, "markdown_inline")
   if not parser then
@@ -32,33 +32,24 @@ function M.upload_md_images(md_content, cookies)
   local changes = {}
 
   -- Helper function to upload an image and return the new URL
-  local function upload_image(url)
-    local file_path = vim.fn.expand(url)
+  local function upload_image(uri)
+    local file_path = vim.fn.expand(uri)
     local file_exists = vim.fn.filereadable(file_path) == 1
     if not file_exists then
       vim.notify("File does not exist: " .. file_path, vim.log.levels.ERROR)
-      return url
+      return uri
     end
     local img_hash = upl.read_file_and_hash(file_path)
     if not img_hash then
-      vim.notify("Failed to read or hash the file: " .. file_path, vim.log.levels.ERROR)
-      return url
+      return uri
     end
     local upload_result = upl.get_image_id_from_hash(img_hash, cookies)
     if not upload_result then
-      vim.notify("Failed to upload image: " .. file_path, vim.log.levels.ERROR)
-      return url
+      return uri
     end
-    local upload_token = upload_result.upload_token
-    if not upload_token then
-      vim.notify("Upload token not found in response", vim.log.levels.ERROR)
-      return url
-    end
-    local result = upl.upload_image_to_zhihu(file_path, upload_token)
-
+    local result = upl.get_image_link(file_path, upload_result.upload_token, upload_result.upload_file)
     if not result then
-      vim.notify("Failed to upload image: " .. url, vim.log.levels.ERROR)
-      return url
+      return uri
     end
     return result
   end
@@ -90,10 +81,12 @@ function M.upload_md_images(md_content, cookies)
   -- Apply changes to the content
   for _, change in ipairs(changes) do
     local start_row, start_col, end_row, end_col = change.node:range()
-    md_content = M.replace_text(md_content, start_row, start_col, end_row, end_col, change.new_text)
+    md_content = M.replace_text(md_content, start_row - 1, start_col, end_row - 1, end_col, change.new_text)
   end
   return md_content
 end
+
+---TODO: better replace based on Treesitter node range
 
 ---Replace text in a string based on Treesitter node range.
 ---@param content string Original content
@@ -105,11 +98,15 @@ end
 ---@return string Updated content
 function M.replace_text(content, start_row, start_col, end_row, end_col, new_text)
   local lines = vim.split(content, "\n", { plain = true })
+  print(vim.inspect(lines))
+  print(new_text)
   local before = lines[start_row + 1]:sub(1, start_col)
   local after = lines[end_row + 1]:sub(end_col + 1)
 
+  print(lines[start_row + 1])
   -- Replace only the content inside parentheses
-  lines[start_row + 1] = before:gsub("%((.-)%)", "(" .. new_text .. ")") .. after
+  lines[start_row + 1] = before .. new_text .. after
+  print(lines[start_row + 1])
 
   return table.concat(lines, "\n")
 end

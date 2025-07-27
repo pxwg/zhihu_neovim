@@ -30,11 +30,12 @@ local function init_draft(opts)
   if opts and opts.fargs and #opts.fargs > 0 then
     title = opts.fargs[1]
   end
+  print(vim.inspect(content))
   local content_input = table.concat(content, "\n")
-  content_input = html.upload_md_images(content_input, cookies)
-  print(content_input)
+  content_input = html.update_md_images(content_input, cookies)
+  local content_output = vim.split(content_input, "\n", { plain = true })
   local md_content = {
-    content = content,
+    content = content_output,
     title = title,
   }
   local file_id = buf_id.check_id(filepath)
