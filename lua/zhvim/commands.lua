@@ -30,6 +30,9 @@ local function init_draft(opts)
   if opts and opts.fargs and #opts.fargs > 0 then
     title = opts.fargs[1]
   end
+  local content_input = table.concat(content, "\n")
+  content_input = html.upload_md_images(content_input, cookies)
+  print(content_input)
   local md_content = {
     content = content,
     title = title,
