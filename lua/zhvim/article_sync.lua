@@ -58,9 +58,6 @@ function M.download_zhihu_article(url, cookies)
   return html_content, nil
 end
 
-local cookies =
-  "_xsrf=n307Z5jPjVcthUiEKqabhAT7U0UpZd72; _zap=b09c145d-f4f8-46fc-b9e6-42172f97ca78; HMACCOUNT=796EE3D1B1BEA346; d_c0=auITCzAONhqPTvpcxHFNaA7ktThZAKXBngw=|1743084196; __snaker__id=ftfNnECCJyeK2Vz6; o_act=login; ref_source=other_https://www.zhihu.com/signin; expire_in=15551999; q_c1=c471a4d3aaae46a79290af7c7a5b77c5|1743093258000|1743093258000; edu_user_uuid=edu-v1|3a75a380-c793-4622-afb5-2c85755887c7; Hm_lvt_98beee57fd2ef70ccdd5ca52b9740c49=1750902956; z_c0=2|1:0|10:1751356940|4:z_c0|80:MS4xdzAwSUVRQUFBQUFtQUFBQVlBSlZUWWYxU1dtMWlGMXlOQkRaQ1Y4SnlQOXN3cTg4XzV1eXdnPT0=|675b0511150a254b5e4f58f2adfe495b4ebc9e3fd950ef248f715c9c12771462; __zse_ck=004_H=pGyeNh92bOyOFTg6Hbv9uvILL8BjM3QTljitoTYvu0hVMsd8VQ6iNM=ptk68Hht2BxFKn9HqH0oj3HCZvZX1KEXvv26kvE4ycd6qpT3SrpsUQ7ckMyPepdSt95ADJU-RfMQI80MVvaQysGjw2pBy9bVrcPn6wRqUVcotZDqgSrz4cWNzHjMvHsmloNYWosGo2zael/q9+S8w3WdM7Zw2FTm3EaPlC/yp2LCtv2uCi8dMj489LgipuNi3EEllfVS; SESSIONID=AK2fFv67koUTWgzQRofYdOhh3D1PoxOKEMld7duEvWS; JOID=UFASAEkP3sm--wFwN-Rz3wzODkwoRJr_2b19SQRku5PurWYAadfsT9fxBHsyk6Wc2OjXjCR1FL0ZDeurLfIaIO8=; osd=VVAdBE0K3sa6_wRwOOB32gzBCkgtRJX73bh9RgBgvpPhqWIFadjoS9LxC382lqWT3OzSjCtxELgZAu-vKPIVJOs=; tst=r; BEC=738c6d0432e7aaf738ea36855cdce904; Hm_lpvt_98beee57fd2ef70ccdd5ca52b9740c49=1753432565"
-
 ---Function to get md5 hash of the current buffer content.
 ---@param content string Content of the current buffer
 ---@return string md5 hash of the content
