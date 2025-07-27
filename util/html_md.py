@@ -93,12 +93,14 @@ def html_to_md(html_file_path: str) -> str:
         md_ol = convert_list_items(ol, prefix="1. ", start=1)
         ol.replace_with(md_ol)
 
-    # Convert <pre> with lang attribute to ```language code blocks
-    for pre in soup.find_all("pre"):
-        lang = pre.get("lang", "")
-        code = pre.text.strip()
-        md_code_block = f"\n\n```{lang}\n{code}\n```\n\n"
-        pre.replace_with(md_code_block)
+    # Convert <div><pre><code> with language class to ```language code blocks
+    for code_block in soup.find_all("div", class_="highlight"):
+        pre = code_block.find("pre")
+        code = pre.find("code")
+        lang = code.get("class", [""])[0].replace("language-", "") if code else ""
+        code_text = code.text.strip() if code else ""
+        md_code_block = f"\n\n```{lang}\n{code_text}\n```\n\n"
+        code_block.replace_with(md_code_block)
 
     # Convert HTML tables to Markdown tables
     for table in soup.find_all("table"):
