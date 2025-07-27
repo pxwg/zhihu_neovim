@@ -98,16 +98,10 @@ end
 ---@return string Updated content
 function M.replace_text(content, start_row, start_col, end_row, end_col, new_text)
   local lines = vim.split(content, "\n", { plain = true })
-  print(vim.inspect(lines))
-  print(new_text)
   local before = lines[start_row + 1]:sub(1, start_col)
   local after = lines[end_row + 1]:sub(end_col + 1)
-
-  print(lines[start_row + 1])
   -- Replace only the content inside parentheses
   lines[start_row + 1] = before .. new_text .. after
-  print(lines[start_row + 1])
-
   return table.concat(lines, "\n")
 end
 

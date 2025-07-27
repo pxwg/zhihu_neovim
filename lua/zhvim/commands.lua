@@ -30,7 +30,6 @@ local function init_draft(opts)
   if opts and opts.fargs and #opts.fargs > 0 then
     title = opts.fargs[1]
   end
-  print(vim.inspect(content))
   local content_input = table.concat(content, "\n")
   content_input = html.update_md_images(content_input, cookies)
   local content_output = vim.split(content_input, "\n", { plain = true })
