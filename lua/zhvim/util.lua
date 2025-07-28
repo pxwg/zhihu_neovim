@@ -116,7 +116,8 @@ end
 function M.remove_inline_formula_whitespace(bufnr)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
   local content = table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), "\n")
-  for _, formula in ipairs(M.get_inline_formulas(bufnr)) do
+  for i = #M.get_inline_formulas(bufnr), 1, -1 do
+    local formula = M.get_inline_formulas(bufnr)[i]
     local start_math, end_math = formula[1].end_pos, formula[#formula].start_pos
     local formula_node = formula[#formula - 1]
     -- Replace the text only if the start and end positions are different from the original
