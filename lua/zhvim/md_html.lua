@@ -1,4 +1,5 @@
 local upl = require("zhvim.article_upload")
+local util = require("zhvim.util")
 local M = {}
 
 ---@class md_content
@@ -81,29 +82,12 @@ function M.update_md_images(md_content, cookies)
   -- Apply changes to the content
   for _, change in ipairs(changes) do
     local start_row, start_col, end_row, end_col = change.node:range()
-    md_content = M.replace_text(md_content, start_row - 1, start_col, end_row - 1, end_col, change.new_text)
+    md_content = util.replace_text(md_content, start_row - 1, start_col, end_row - 1, end_col, change.new_text)
   end
   return md_content
 end
 
 ---TODO: better replace based on Treesitter node range
-
----Replace text in a string based on Treesitter node range.
----@param content string Original content
----@param start_row number Start row of the range
----@param start_col number Start column of the range
----@param end_row number End row of the range
----@param end_col number End column of the range
----@param new_text string New text to replace the range
----@return string Updated content
-function M.replace_text(content, start_row, start_col, end_row, end_col, new_text)
-  local lines = vim.split(content, "\n", { plain = true })
-  local before = lines[start_row + 1]:sub(1, start_col)
-  local after = lines[end_row + 1]:sub(end_col + 1)
-  -- Replace only the content inside parentheses
-  lines[start_row + 1] = before .. new_text .. after
-  return table.concat(lines, "\n")
-end
 
 ---Convert Markdown content to HTML satisfying zhihu structure using a Python script.
 ---@param md_content md_content Markdown content to be converted

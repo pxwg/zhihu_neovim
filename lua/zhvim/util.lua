@@ -1,6 +1,23 @@
 local ts_utils = require("nvim-treesitter.ts_utils")
 local M = {}
 
+---Replace text in a string based on Treesitter node range.
+---@param content string Original content
+---@param start_row number Start row of the range
+---@param start_col number Start column of the range
+---@param end_row number End row of the range
+---@param end_col number End column of the range
+---@param new_text string New text to replace the range
+---@return string Updated content
+function M.replace_text(content, start_row, start_col, end_row, end_col, new_text)
+  local lines = vim.split(content, "\n", { plain = true })
+  local before = lines[start_row + 1]:sub(1, start_col)
+  local after = lines[end_row + 1]:sub(end_col + 1)
+  -- Replace only the content inside parentheses
+  lines[start_row + 1] = before .. new_text .. after
+  return table.concat(lines, "\n")
+end
+
 --- Get the first Markdown level-1 heading (# title) as the title.
 ---@param bufnr number Buffer number (default: current buffer)
 ---@return string|nil title The extracted title, or nil if not found
@@ -47,6 +64,76 @@ function M.get_markdown_title(bufnr)
 
   vim.notify("No level-1 heading found in the Markdown file.", vim.log.levels.WARN)
   return vim.fn.expand("%:t:r"), 0 -- Return the file name without extension as a fallback title
+end
+
+--- Get all inline formulas from the current Markdown buffer using Treesitter.
+--- @param bufnr number? Buffer number (default: current buffer)
+--- @return table list of inline formulas with their start and end positions
+function M.get_inline_formulas(bufnr)
+  bufnr = bufnr or 0
+  local parser = vim.treesitter.get_parser(bufnr, "latex")
+  if not parser then
+    vim.notify("Treesitter parser for markdown_inline is not available", vim.log.levels.ERROR)
+    return {}
+  end
+
+  local tree = parser:parse()[1]
+  local root = tree:root()
+  local results = {}
+
+  -- Traverse the syntax tree to find inline_formula nodes
+  local function process_node(node)
+    if node:type() == "inline_formula" then
+      local formula_info = {}
+      for child in node:iter_children() do
+        local text = vim.treesitter.get_node_text(child, bufnr)
+        local start_row, start_col, end_row, end_col = child:range()
+        table.insert(formula_info, {
+          start_pos = { start_row + 1, start_col + 1 },
+          end_pos = { end_row + 1, end_col + 1 },
+          text = text,
+        })
+      end
+      table.insert(results, formula_info)
+    end
+    for child in node:iter_children() do
+      process_node(child)
+    end
+  end
+  process_node(root)
+  if #results == 0 then
+    vim.notify("No inline formulas found in the Markdown file.", vim.log.levels.WARN)
+  end
+
+  return results
+end
+
+---Remove the leading and trailing whitespace in inline formulas in the current Markdown buffer.
+---Ref: [pandoc-doc](https://pandoc.org/demo/example33/8.13-math.html): Anything between two $ characters will be treated as TeX math. The opening $ must have a non-space character immediately to its right, while the closing $ must have a non-space character immediately to its left,
+---and must not be followed immediately by a digit. Thus, $20,000 and $30,000 won’t parse as math. If for some reason you need to enclose text in literal $ characters, backslash-escape them and they won’t be treated as math delimiters.
+---@param bufnr number Buffer number (default: current buffer)
+---@return string Updated content with whitespace removed
+function M.remove_inline_formula_whitespace(bufnr)
+  bufnr = bufnr or vim.api.nvim_get_current_buf()
+  local content = table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), "\n")
+  for _, formula in ipairs(M.get_inline_formulas(bufnr)) do
+    local start_math, end_math = formula[1].end_pos, formula[#formula].start_pos
+    local formula_node = formula[#formula - 1]
+    -- Replace the text only if the start and end positions are different from the original
+    -- this is the situation where the whitespace at the start and end of the inline formula is not removed
+    -- e.g. $ 1 + 1 $ -> $1 + 1$
+    if formula_node.start_pos[2] ~= start_math[2] or formula_node.end_pos[2] ~= end_math[2] then
+      content = M.replace_text(
+        content,
+        start_math[1] - 1,
+        start_math[2] - 1,
+        end_math[1] - 1,
+        end_math[2] - 1,
+        formula_node.text
+      )
+    end
+  end
+  return content
 end
 
 return M
