@@ -124,14 +124,11 @@ function M.remove_inline_formula_whitespace(bufnr)
     -- this is the situation where the whitespace at the start and end of the inline formula is not removed
     -- e.g. $ 1 + 1 $ -> $1 + 1$
     if formula_node.start_pos[2] ~= start_math[2] or formula_node.end_pos[2] ~= end_math[2] then
-      content = M.replace_text(
-        content,
-        start_math[1] - 1,
-        start_math[2] - 1,
-        end_math[1] - 1,
-        end_math[2] - 1,
-        formula_node.text
-      )
+      -- Remove leading whitespace before the start of the inline formula if it exists
+      if start_math[2] > 1 then
+        content =
+          M.replace_text(content, start_math[1] - 1, start_math[2] - 2, start_math[1] - 1, start_math[2] - 1, "")
+      end
     end
   end
   return content
