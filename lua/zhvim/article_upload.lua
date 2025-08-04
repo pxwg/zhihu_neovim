@@ -137,6 +137,17 @@ function M.update_draft(draft_id, html_content, cookies)
   }
 
   local patch_body_json = vim.fn.json_encode(patch_body)
+  local temp_file_path = "/tmp/nvim_zhihu_html_content_input.json"
+
+  local temp_file = io.open(temp_file_path, "w")
+  if temp_file then
+    temp_file:write(patch_body_json)
+    temp_file:close()
+  else
+    vim.notify("Failed to create temporary file.", vim.log.levels.ERROR)
+    return
+  end
+
   local headers = {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
     "Content-Type: application/json",
@@ -145,16 +156,19 @@ function M.update_draft(draft_id, html_content, cookies)
   }
 
   local curl_command = string.format(
-    [[curl -s -X PATCH %s -H "%s" -H "%s" -H "%s" -H "%s" -d '%s']],
+    [[curl -s -X PATCH %s -H "%s" -H "%s" -H "%s" -H "%s" --data-binary @%s]],
     patch_url,
     headers[1],
     headers[2],
     headers[3],
     headers[4],
-    patch_body_json
+    temp_file_path
   )
 
   local response = execute_curl_command(curl_command)
+
+  os.remove(temp_file_path)
+
   if response then
     vim.notify("Updated draft successfully.", vim.log.levels.INFO)
   else
@@ -176,14 +190,31 @@ function M.get_image_id_from_hash(img_hash, cookie)
     image_hash = img_hash,
     source = "article",
   })
+
+  local temp_file_path = "/tmp/nvim_zhihu_image_hash_input.json"
+
+  -- Write the JSON body to the temporary file
+  local temp_file = io.open(temp_file_path, "w")
+  if temp_file then
+    temp_file:write(body)
+    temp_file:close()
+  else
+    vim.notify("Failed to create temporary file.", vim.log.levels.ERROR)
+    return nil
+  end
+
   local curl_command = string.format(
-    [[curl -s -X POST https://api.zhihu.com/images -H "%s" -H "%s" -H "%s" -d '%s']],
+    [[curl -s -X POST https://api.zhihu.com/images -H "%s" -H "%s" -H "%s" --data-binary @%s]],
     headers[1],
     headers[2],
     headers[3],
-    body
+    temp_file_path
   )
+
   local response = execute_curl_command(curl_command)
+
+  os.remove(temp_file_path)
+
   local result = nil
   if response then
     local parsed_response = vim.fn.json_decode(response)
