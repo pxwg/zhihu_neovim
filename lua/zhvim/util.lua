@@ -1,5 +1,6 @@
 local ts_utils = require("nvim-treesitter.ts_utils")
 local M = {}
+--- TODO: Chinese characters should be supported while counting row numbers.
 
 ---Replace text in a string based on Treesitter node range.
 ---@param content string Original content
@@ -10,6 +11,7 @@ local M = {}
 ---@param new_text string New text to replace the range
 ---@return string Updated content
 function M.replace_text(content, start_row, start_col, end_row, end_col, new_text)
+  --- TODO: fix for Chinese characters
   local lines = vim.split(content, "\n", { plain = true })
   local before = lines[start_row + 1]:sub(1, start_col)
   local after = lines[end_row + 1]:sub(end_col + 1)

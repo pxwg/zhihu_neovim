@@ -1,3 +1,4 @@
+local lib = require("lib.md_html")
 local upl = require("zhvim.article_upload")
 local util = require("zhvim.util")
 local M = {}
@@ -94,26 +95,32 @@ end
 ---@return html_content html_content content or an error message
 ---@return string|nil error
 function M.convert_md_to_html(md_content)
-  local plugin_root = get_plugin_root()
-  local python_script = plugin_root .. "util/md_html.py"
-  local python_executable = plugin_root .. "/.venv/bin/python"
+  -- local plugin_root = get_plugin_root()
+  -- local python_script = plugin_root .. "util/md_html.py"
+  -- local python_executable = plugin_root .. "/.venv/bin/python"
+  --
+  -- local input_data = vim.fn.json_encode({ markdown = md_content })
+  --
+  -- local output = vim.fn.system({ python_executable, python_script }, input_data)
 
-  local input_data = vim.fn.json_encode({ markdown = md_content })
+  -- if vim.v.shell_error ~= 0 then
+  -- vim.notify("Python script failed with error code: " .. output, vim.log.levels.ERROR)
+  -- return { title = "", content = "" }, "Python script execution failed: " .. output
+  -- end
 
-  local output = vim.fn.system({ python_executable, python_script }, input_data)
+  -- local result = vim.fn.json_decode(output)
 
-  if vim.v.shell_error ~= 0 then
-    vim.notify("Python script failed with error code: " .. output, vim.log.levels.ERROR)
-    return { title = "", content = "" }, "Python script execution failed: " .. output
-  end
+  -- if result.error then
+  --   vim.notify("Error: " .. result.error, vim.log.levels.ERROR)
+  --   return { title = "", content = "" }, result.error
+  -- end
+  local title = md_content.title or "Untitled"
+  local content = lib.md_to_html(md_content.content or "")
+  local result = {
+    title = title,
+    content = content,
+  }
 
-  local result = vim.fn.json_decode(output)
-  if result.error then
-    vim.notify("Error: " .. result.error, vim.log.levels.ERROR)
-    return { title = "", content = "" }, result.error
-  end
-
-  -- print(result.content)
   return {
     title = result.title or "",
     content = result.content or "",

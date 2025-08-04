@@ -128,9 +128,29 @@ end
 ---@param cookies number
 function M.update_draft(draft_id, html_content, cookies)
   local patch_url = string.format("https://zhuanlan.zhihu.com/api/articles/%s/draft", draft_id)
+  local temp_file_path = "/tmp/nvim_zhihu_html_content_update.html"
+
+  -- Write html_content.content to a temporary file
+  local temp_file = io.open(temp_file_path, "w")
+  if not temp_file then
+    vim.notify("Failed to create temporary file.", vim.log.levels.ERROR)
+    return
+  end
+  temp_file:write(html_content.content)
+  temp_file:close()
+
+  -- Read content back from the temporary file
+  local temp_file_read = io.open(temp_file_path, "r")
+  if not temp_file_read then
+    vim.notify("Failed to read temporary file.", vim.log.levels.ERROR)
+    return
+  end
+  local content_from_file = temp_file_read:read("*a")
+  temp_file_read:close()
+
   local patch_body = {
     title = html_content.title,
-    content = html_content.content,
+    content = content_from_file,
     table_of_contents = false,
     delta_time = 30,
     can_reward = false,

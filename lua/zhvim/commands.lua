@@ -26,16 +26,15 @@ local function init_draft(opts)
   end
 
   local title, _ = util.get_markdown_title(0)
-  -- local content = vim.api.nvim_buf_get_lines(0, 1, -1, false)
+  local content = vim.api.nvim_buf_get_lines(0, 1, -1, false)
   if opts and opts.fargs and #opts.fargs > 0 then
     title = opts.fargs[1]
   end
-  -- local content_input = table.concat(content, "\n")
-  local content_input = util.remove_inline_formula_whitespace(0)
+  local content_input = table.concat(content, "\n")
   content_input = html.update_md_images(content_input, cookies)
-  local content_output = vim.split(content_input, "\n", { plain = true })
+  -- local content_output = vim.split(content_input, "\n", { plain = true })
   local md_content = {
-    content = content_output,
+    content = content_input,
     title = title,
   }
   local file_id = buf_id.check_id(filepath)
