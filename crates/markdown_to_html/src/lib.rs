@@ -8,18 +8,24 @@ fn markdown_to_html(input: &str, options: Options) -> String {
         match event {
             Event::InlineMath(text) => {
                 let eq = text.to_string();
-                Event::Html(format!(
-                    "<span class=\"math\"><img eeimg=\"1\" src=\"//www.zhihu.com/equation?tex={}\" alt=\"{}\"/></span>",
-                    eq, eq
-                ).into())
-            },
+                Event::Html(
+                    format!(
+                        "<img eeimg=\"1\" src=\"//www.zhihu.com/equation?tex={}\" alt=\"{}\"/>",
+                        eq, eq
+                    )
+                    .into(),
+                )
+            }
             Event::DisplayMath(text) => {
-                let eq = format!("{}\\\\", text);
-                Event::Html(format!(
-                    "<div class=\"math\"><img eeimg=\"1\" src=\"//www.zhihu.com/equation?tex={}\" alt=\"{}\"/></div>",
-                    eq, text
-                ).into())
-            },
+                let eq = text.to_string();
+                Event::Html(
+                    format!(
+                        "<img eeimg=\"1\" src=\"//www.zhihu.com/equation?tex={}\\\\\" alt=\"{}\\\\\"/>",
+                        eq, eq
+                    )
+                    .into(),
+                )
+            }
             // TODO: better solution
             // HACK: Single line HTML output is expected by zhihu, so we replace soft breaks with spaces (which always only affects for English characters, since the common converting tools (e.g. pandoc) does not wrap lines with non-English worlds.
             Event::SoftBreak => Event::Text(" ".into()),
