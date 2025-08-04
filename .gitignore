@@ -7,3 +7,4 @@ doc_test/
 *_zhihu
 build/
 target
+*/Cargo.lock
