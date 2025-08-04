@@ -1,5 +1,7 @@
 #!/bin/bash
 
+make lua51
+
 # Define the project root and virtual environment directory
 PROJECT_ROOT="/Users/pxwg-dogggie/zhihu_on_nvim"
 VENV_DIR="$PROJECT_ROOT/.venv"
