@@ -20,12 +20,17 @@ fn markdown_to_html(input: &str, options: Options) -> String {
                     eq, text
                 ).into())
             },
+            // TODO: better solution
+            // HACK: Single line HTML output is expected by zhihu, so we replace soft breaks with spaces (which always only affects for English characters, since the common converting tools (e.g. pandoc) does not wrap lines with non-English worlds.
+            Event::SoftBreak => Event::Text(" ".into()),
             _ => event,
         }
     });
 
     let mut html_output = String::new();
     html::push_html(&mut html_output, parser);
+    // HACK: In zhihu, the HTML output is expected to be a single line without newlines, if not, it
+    // would be rendered as a newline instead of a whitespace.
     html_output.replace("\n", "")
 }
 
