@@ -83,7 +83,7 @@ function M.update_md_images(md_content, cookies)
   -- Apply changes to the content
   for _, change in ipairs(changes) do
     local start_row, start_col, end_row, end_col = change.node:range()
-    md_content = util.replace_text(md_content, start_row, start_col, end_row, end_col, change.new_text)
+    md_content = util.replace_text(md_content, start_row - 1, start_col, end_row - 1, end_col, change.new_text)
   end
   return md_content
 end
