@@ -5,6 +5,7 @@ fn markdown_to_html(input: &str, options: Options) -> String {
     let parser = Parser::new_ext(input, options);
 
     let mut in_code_block = false;
+    let mut current_image_url: Option<String> = None;
     let parser = parser.map(|event| {
         match event {
             // Pure equation with only a single line
@@ -28,6 +29,24 @@ fn markdown_to_html(input: &str, options: Options) -> String {
                     .into(),
                 )
             }
+            Event::Start(Tag::Image { link_type: _, dest_url, title: _, .. }) => {
+                // Store the image URL for when we encounter the alt text
+                current_image_url = Some(dest_url.to_string());
+                Event::Text("".into()) // Return empty text to consume this event
+            }
+            Event::Text(text) if current_image_url.is_some() => {
+                // This is the alt text for the image
+                let dest_url = current_image_url.take().unwrap();
+                let caption = text.to_string();
+                Event::Html(
+                    format!(
+                        "<img src=\"{}\" data-caption=\"{}\" data-size=\"normal\" data-watermark=\"watermark\" data-original-src=\"{}\" data-watermark-src=\"\" data-private-watermark-src=\"\" />",
+                        dest_url, caption, dest_url
+                    )
+                    .into(),
+                )
+            }
+            // Inline code blocks
             Event::Start(Tag::CodeBlock(kind)) => {
                 in_code_block = true;
                 let lang = match kind {
