@@ -5,3 +5,6 @@ doc_test/
 .DS_Store
 *_test
 *_zhihu
+build/
+target
+*/Cargo.lock
