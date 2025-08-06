@@ -30,7 +30,7 @@ impl MarkdownEventProcessor {
 
 impl EventProcessor for MarkdownEventProcessor {
   fn process_inline_math(&self, text: &str) -> Event<'static> {
-    let eq = text.replace("\n", "");
+    let eq = text.replace("\n", "").replace("\r", "");
     Event::Html(
       format!(
         "<img eeimg=\"1\" src=\"//www.zhihu.com/equation?tex={}\" alt=\"{}\"/>",
@@ -41,7 +41,7 @@ impl EventProcessor for MarkdownEventProcessor {
   }
 
   fn process_display_math(&self, text: &str) -> Event<'static> {
-    let eq = text.replace("\n", "");
+    let eq = text.replace("\n", "").replace("\r", "");
     Event::Html(
       format!(
         "<img eeimg=\"1\" src=\"//www.zhihu.com/equation?tex={}\\\\\" alt=\"{}\\\\\"/>",

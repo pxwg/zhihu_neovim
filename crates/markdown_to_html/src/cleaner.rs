@@ -19,7 +19,7 @@ pub fn clean_html_structure(html: &str) -> String {
     .read_from(&mut Cursor::new(html))
     .unwrap();
 
-  // satisfying zhihu-flavored HTML spec
+  // Satisfying zhihu-flavored HTML spec
   clean_node(&dom.document);
 
   let mut bytes = vec![];
@@ -33,35 +33,18 @@ pub fn clean_html_structure(html: &str) -> String {
   String::from_utf8(bytes).unwrap()
 }
 
-/// Zhihu has its own spec for HTML rendering, which requires some specific cleaning of the HTML structure.
-/// The known issues include: `<\p>\n` and `<\pre>\n` would be rendered as `\n\n` instead of `\n`.
-/// Using html5ever to parse the HTML and clean it up according to the spec. Which might be more
-/// safer than using regex to replace the HTML structure.
+/// Cleans the HTML structure to remove trailing `\n` after any node and handles special cases.
 fn clean_node(node: &Handle) {
   match &node.data {
     NodeData::Text { contents } => {
-      if let Some(parent) = node.parent.take() {
-        if let NodeData::Element { name, .. } = &parent.upgrade().unwrap().data {
-          // remove: `<\p>\n` -> `<\p>`; `<\pre>\n` -> `<\pre>`; `\n<\code>` -> `<\code>`
-          // to satisfy zhihu-flavored HTML spec
-          if name.local.as_ref() == "p"
-            || name.local.as_ref() == "pre"
-            || name.local.as_ref() == "code"
-          {
-            let mut contents_mut = contents.borrow_mut();
-            if contents_mut.starts_with('\n') {
-              *contents_mut = contents_mut.trim_start_matches('\n').into();
-            }
-            if name.local.as_ref() == "code" && contents_mut.ends_with('\n') {
-              *contents_mut = contents_mut.trim_end_matches('\n').into();
-            }
-          }
-        }
+      let mut contents_mut = contents.borrow_mut();
+      if contents_mut.ends_with('\n') {
+        *contents_mut = contents_mut.trim_end_matches('\n').into();
       }
     }
     NodeData::Element { name, .. } => {
-      if name.local.as_ref() == "pre" || name.local.as_ref() == "p" || name.local.as_ref() == "code"
-      {
+      if name.local.as_ref() == "code" {
+        // Special handling for `<code>`: remove leading and trailing `\n`
         if let Some(parent) = node.parent.take() {
           let parent = parent.upgrade().unwrap();
           let children = parent.children.borrow();
