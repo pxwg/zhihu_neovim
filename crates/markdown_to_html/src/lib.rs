@@ -1,7 +1,7 @@
-mod util;
+mod cleaner;
+use cleaner::clean_html_structure;
 use mlua::{Lua, Result};
 use pulldown_cmark::{html, CodeBlockKind, CowStr, Event, Options, Parser, Tag, TagEnd};
-use util::clean_html_structure;
 
 pub trait EventProcessor {
   fn process_inline_math(&self, text: &str) -> Event<'static>;
