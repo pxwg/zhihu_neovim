@@ -61,7 +61,6 @@ local function init_draft(cmd_opts, opts)
   end
   local file_id = buf_id.check_id(filepath)
   if file_id == nil then
-    print(vim.inspect(md_content))
     local html_content, error = html.convert_md_to_html(md_content)
     if html_content and error == nil then
       local draft_id, _ = upl.init_draft(html_content, cookies)
