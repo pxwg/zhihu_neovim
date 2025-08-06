@@ -12,11 +12,15 @@ pub trait EventProcessor {
   fn process_code_block_end(&mut self) -> Event<'static>;
   fn process_soft_break(&self, in_code_block: bool) -> Event<'static>;
   fn process_text(&self, text: &str, in_code_block: bool) -> Event<'static>;
+  fn process_table(&self, headers: Vec<&str>, rows: Vec<Vec<&str>>) -> Event<'static>;
 }
 
 pub struct MarkdownEventProcessor {
-  in_code_block: bool,
-  current_image_url: Option<String>,
+  pub in_code_block: bool,
+  pub current_image_url: Option<String>,
+  pub code_block_content: Option<String>,
+  pub code_block_info: Option<String>,
+  pub in_table_head: bool,
 }
 
 impl MarkdownEventProcessor {
@@ -24,6 +28,9 @@ impl MarkdownEventProcessor {
     Self {
       in_code_block: false,
       current_image_url: None,
+      code_block_content: None,
+      code_block_info: None,
+      in_table_head: false,
     }
   }
 }
@@ -99,6 +106,30 @@ impl EventProcessor for MarkdownEventProcessor {
       Event::Html(replaced_text.into())
     }
   }
+
+  fn process_table(&self, headers: Vec<&str>, rows: Vec<Vec<&str>>) -> Event<'static> {
+    let mut table_html = String::from(
+      "<table data-draft-node=\"block\" data-draft-type=\"table\" data-size=\"normal\"><tbody>",
+    );
+
+    table_html.push_str("<tr>");
+    for header in headers {
+      table_html.push_str(&format!("<th>{}</th>", header));
+    }
+    table_html.push_str("</tr>");
+
+    for row in rows {
+      table_html.push_str("<tr>");
+      for cell in row {
+        table_html.push_str(&format!("<td>{}</td>", cell));
+      }
+      table_html.push_str("</tr>");
+    }
+
+    table_html.push_str("</tbody></table>");
+
+    Event::Html(table_html.into())
+  }
 }
 
 fn markdown_to_html(input: &str, options: Options) -> String {
@@ -116,6 +147,36 @@ fn markdown_to_html(input: &str, options: Options) -> String {
     Event::End(TagEnd::CodeBlock) => processor.process_code_block_end(),
     Event::SoftBreak => processor.process_soft_break(processor.in_code_block),
     Event::Text(text) => processor.process_text(&text, processor.in_code_block),
+    Event::Start(Tag::Table(_)) => {
+      let html =
+        r#"<table data-draft-node="block" data-draft-type="table" data-size="normal"><tbody>"#;
+      Event::Html(html.into())
+    }
+    Event::End(TagEnd::Table) => Event::Html("</tbody></table>".into()),
+    Event::Start(Tag::TableHead) => {
+      processor.in_table_head = true;
+      Event::Text("".into())
+    }
+    Event::End(TagEnd::TableHead) => {
+      processor.in_table_head = false;
+      Event::Text("".into())
+    }
+    Event::Start(Tag::TableRow) => Event::Html("<tr>".into()),
+    Event::End(TagEnd::TableRow) => Event::Html("</tr>".into()),
+    Event::Start(Tag::TableCell) => {
+      if processor.in_table_head {
+        Event::Html("<th>".into())
+      } else {
+        Event::Html("<td>".into())
+      }
+    }
+    Event::End(TagEnd::TableCell) => {
+      if processor.in_table_head {
+        Event::Html("</th>".into())
+      } else {
+        Event::Html("</td>".into())
+      }
+    }
     _ => event.to_owned(),
   });
 
