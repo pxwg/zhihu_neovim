@@ -6,15 +6,17 @@ local sync = require("zhvim.article_sync")
 local upl = require("zhvim.article_upload")
 local util = require("zhvim.util")
 local cookies = vim.env.ZHIVIM_COOKIES or vim.g.zhvim_cookies
+local script = require("zhvim.script")
 
----Initializes a draft for the current buffer.
----@param opts table? Options for the command
-local function init_draft(opts)
+---@param cmd_opts table? Options for the command
+---@param opts ZhnvimConfigs User configs
+local function init_draft(cmd_opts, opts)
   if not cookies or cookies == "" then
     vim.api.nvim_echo({ { "Please set zhvim_cookies before using this command.", "ErrorMsg" } }, true, { err = true })
     return
   end
 
+  local buf_content = vim.api.nvim_buf_get_lines(0, 0, -1, false)
   local filepath = vim.api.nvim_buf_get_name(0)
   if filepath == "" then
     vim.api.nvim_echo(
@@ -24,20 +26,39 @@ local function init_draft(opts)
     )
     return
   end
+  local filetype = vim.bo.filetype
+  local filetypes = util.get_ft_by_patterns(opts.patterns, opts.extension)
+  local md_content = { content = "", title = "" }
 
-  local title, _ = util.get_markdown_title(0)
-  -- local content = vim.api.nvim_buf_get_lines(0, 1, -1, false)
-  if opts and opts.fargs and #opts.fargs > 0 then
-    title = opts.fargs[1]
+  if filetype ~= "markdown" and filetype ~= "md" and vim.tbl_contains(filetypes, filetype) then
+    local content_string = table.concat(buf_content, "\n")
+    local content_input = {
+      content = content_string,
+      --TODO: user script to get title
+      title = vim.fn.expand("%:t:r"),
+    }
+    md_content = script.execute_user_script(opts, filetype, content_input)
+    md_content = {
+      content = vim.split(md_content.content, "\n", { plain = true }),
+      title = md_content.title or vim.fn.expand("%:t:r"),
+    }
   end
-  -- local content_input = table.concat(content, "\n")
-  local content_input = util.remove_inline_formula_whitespace(0)
-  content_input = html.update_md_images(content_input, cookies)
-  local content_output = vim.split(content_input, "\n", { plain = true })
-  local md_content = {
-    content = content_output,
-    title = title,
-  }
+
+  if filetype == "markdown" or filetype == "md" then
+    local title, _ = util.get_markdown_title(0)
+    -- local content = vim.api.nvim_buf_get_lines(0, 1, -1, false)
+    if cmd_opts and cmd_opts.fargs and #cmd_opts.fargs > 0 then
+      title = cmd_opts.fargs[1]
+    end
+    -- local content_input = table.concat(content, "\n")
+    local content_input = util.remove_inline_formula_whitespace(0)
+    content_input = html.update_md_images(content_input, cookies)
+    local content_output = vim.split(content_input, "\n", { plain = true })
+    md_content = {
+      content = content_output,
+      title = title,
+    }
+  end
   local file_id = buf_id.check_id(filepath)
   if file_id == nil then
     local html_content, error = html.convert_md_to_html(md_content)
@@ -125,10 +146,21 @@ local function sync_article()
 end
 
 --- Module for setting up commands
-function M.setup_commands()
-  vim.api.nvim_create_user_command("ZhihuDraft", init_draft, { nargs = "*", complete = "file" })
+---@param opts ZhnvimConfigs Options for the commands
+function M.setup_commands(opts)
+  vim.api.nvim_create_user_command("ZhihuDraft", function(cmd_opts)
+    init_draft(cmd_opts, opts)
+  end, { nargs = "*", complete = "file" })
   vim.api.nvim_create_user_command("ZhihuOpen", open_draft, {})
   vim.api.nvim_create_user_command("ZhihuSync", sync_article, {})
+end
+
+---@param opts ZhnvimConfigs Options for the autocmds
+function M.setup_autocmd(opts)
+  local autocmd = vim.api.nvim_create_autocmd
+  --- Set up autocmds in opts.filetype to avoid the default save mechanism of Neovim (which can disrupt inode-based file detection)
+  autocmd("BufWritePre", { pattern = opts.patterns, command = "set nowritebackup" })
+  autocmd("BufWritePost", { pattern = opts.patterns, command = "set writebackup" })
 end
 
 return M
