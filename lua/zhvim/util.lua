@@ -134,4 +134,29 @@ function M.remove_inline_formula_whitespace(bufnr)
   return content
 end
 
+---Get filetype by pattern.
+---@param pattern string Pattern to match filetype e.g `*.md`
+---@param extension table<string, string>? A table containing file extensions and their associated commands, e.g. `extension = { md = "Markdown" }`
+---@return string|nil filetype The matched filetype or nil if not found
+function M.get_ft_by_pattern(pattern, extension)
+  vim.filetype.add({ extension = extension })
+  local filetype = vim.filetype.match({ filename = pattern })
+  return filetype
+end
+
+---Get filetypes by patterns
+---@param pattern string[] Patterns to match filetypes e.g `{"*.md", "*.txt"}`
+---@param extension table<string, string>? A table containing file extensions and their associated commands, e.g. `extension = { md = "Markdown" }`
+---@return string[] filetypes A list of matched filetypes
+function M.get_ft_by_patterns(pattern, extension)
+  local filetypes = {}
+  for _, pat in ipairs(pattern) do
+    local ft = M.get_ft_by_pattern(pat, extension)
+    if ft and not vim.tbl_contains(filetypes, ft) then
+      table.insert(filetypes, ft)
+    end
+  end
+  return filetypes
+end
+
 return M
