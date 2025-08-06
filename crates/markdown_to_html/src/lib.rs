@@ -74,12 +74,12 @@ impl EventProcessor for MarkdownEventProcessor {
       CodeBlockKind::Indented => "".to_string(),
       CodeBlockKind::Fenced(info) => info.trim().to_string(),
     };
-    Event::Html(CowStr::from(format!("<pre lang=\"{}\"><code>", lang)))
+    Event::Html(CowStr::from(format!("<pre lang=\"{}\">", lang)))
   }
 
   fn process_code_block_end(&mut self) -> Event<'static> {
     self.in_code_block = false;
-    Event::Html(CowStr::from("</code></pre>"))
+    Event::Html(CowStr::from("</pre>"))
   }
 
   fn process_soft_break(&self, in_code_block: bool) -> Event<'static> {
@@ -122,7 +122,8 @@ fn markdown_to_html(input: &str, options: Options) -> String {
   let mut html_output = String::new();
   html::push_html(&mut html_output, parser);
 
-  clean_html_structure(&html_output)
+  let out = clean_html_structure(&html_output);
+  out.replace("<br>\n", "")
 }
 
 #[mlua::lua_module]
