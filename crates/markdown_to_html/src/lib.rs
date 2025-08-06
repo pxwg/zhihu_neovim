@@ -1,16 +1,22 @@
+use html5ever::driver::ParseOpts;
+use html5ever::parse_document;
+use html5ever::tendril::TendrilSink;
+use markup5ever_rcdom::{Handle, NodeData, RcDom};
 use mlua::{Lua, Result};
 use pulldown_cmark::{html, CodeBlockKind, CowStr, Event, Options, Parser, Tag, TagEnd};
+use std::io::Cursor;
+use std::rc::Rc;
 
 fn markdown_to_html(input: &str, options: Options) -> String {
-    let parser = Parser::new_ext(input, options);
+  let parser = Parser::new_ext(input, options);
 
-    let mut in_code_block = false;
-    let mut current_image_url: Option<String> = None;
-    let parser = parser.map(|event| {
-        match event {
+  let mut in_code_block = false;
+  let mut current_image_url: Option<String> = None;
+  let parser = parser.map(|event| {
+    match event {
             // Pure equation with only a single line
-            Event::InlineMath(text) => {
-                let eq = text.to_string().replace("\n", "");
+      Event::InlineMath(text) => {
+        let eq = text.to_string().replace("\n", "");
                 Event::Html(
                     format!(
                         "<img eeimg=\"1\" src=\"//www.zhihu.com/equation?tex={}\" alt=\"{}\"/>",
@@ -73,7 +79,6 @@ fn markdown_to_html(input: &str, options: Options) -> String {
             }
             // HACK: In zhihu, the HTML output is expected to be a single line without newlines, if not, it
             // would be rendered as a newline instead of a whitespace.
-            // html_output.replace("\n", "")
             Event::Text(text) => {
                 if in_code_block {
                     Event::Text(text)
@@ -83,31 +88,117 @@ fn markdown_to_html(input: &str, options: Options) -> String {
                     Event::Html(replaced_text.into())
                 }
             }
-            _ => event,
+              _ => event,
         }
     });
 
-    let mut html_output = String::new();
-    html::push_html(&mut html_output, parser);
-    // TODO: introduce a better solution e.g. using a HTML parser to avoid unwanted line breaks in
-    // HTML output
-    // HACK: Replace the newline after paragraph tags with a space to avoid unwanted line breaks in HTML output
-    html_output
-        .replace("</p>\n", "</p>") // HACK: Replace newline after closing paragraph tag with nothing to avoid unwanted line breaks in HTML output
-        .replace("\n</code>", "</code>") // HACK: Replace newline before closing code tag with nothing to avoid unwanted line breaks in HTML output
+  let mut html_output = String::new();
+  html::push_html(&mut html_output, parser);
+
+  clean_html_structure(&html_output)
+
+  // // HACK: Replace the newline after paragraph tags with a space to avoid unwanted line breaks in HTML output
+  // html_output
+  //     .replace("</p>\n", "</p>") // HACK: Replace newline after closing paragraph tag with nothing to avoid unwanted line breaks in HTML output
+  //     .replace("\n</code>", "</code>") // HACK: Replace newline before closing code tag with nothing to avoid unwanted line breaks in HTML output
+}
+
+fn clean_html_structure(html: &str) -> String {
+  use html5ever::serialize::{serialize, SerializeOpts};
+  use markup5ever_rcdom::SerializableHandle;
+
+  let parse_opts = ParseOpts::default();
+  let dom = parse_document(RcDom::default(), parse_opts)
+    .from_utf8()
+    .read_from(&mut Cursor::new(html))
+    .unwrap();
+
+  // satisfying zhihu-flavored HTML spec
+  clean_node(&dom.document);
+
+  let mut bytes = vec![];
+  serialize(
+    &mut bytes,
+    &SerializableHandle::from(dom.document.clone()),
+    SerializeOpts::default(),
+  )
+  .unwrap();
+
+  String::from_utf8(bytes).unwrap()
+}
+
+/// Zhihu has its own spec for HTML rendering, which requires some specific cleaning of the HTML structure.
+/// The known issues include: `<\p>\n` and `<\pre>\n` would be rendered as `\n\n` instead of `\n`.
+/// Using html5ever to parse the HTML and clean it up according to the spec. Which might be more
+/// safer than using regex to replace the HTML structure.
+fn clean_node(node: &Handle) {
+  match &node.data {
+    NodeData::Text { contents } => {
+      if let Some(parent) = node.parent.take() {
+        if let NodeData::Element { name, .. } = &parent.upgrade().unwrap().data {
+          // remove: `<\p>\n` -> `<\p>`; `<\pre>\n` -> `<\pre>`; `\n<\code>` -> `<\code>`
+          // to satisfy zhihu-flavored HTML spec
+          if name.local.as_ref() == "p"
+            || name.local.as_ref() == "pre"
+            || name.local.as_ref() == "code"
+          {
+            let mut contents_mut = contents.borrow_mut();
+            if contents_mut.starts_with('\n') {
+              *contents_mut = contents_mut.trim_start_matches('\n').into();
+            }
+            if name.local.as_ref() == "code" && contents_mut.ends_with('\n') {
+              *contents_mut = contents_mut.trim_end_matches('\n').into();
+            }
+          }
+        }
+      }
+    }
+    NodeData::Element { name, .. } => {
+      if name.local.as_ref() == "pre" || name.local.as_ref() == "p" || name.local.as_ref() == "code"
+      {
+        if let Some(parent) = node.parent.take() {
+          let parent = parent.upgrade().unwrap();
+          let children = parent.children.borrow();
+          let mut found = false;
+
+          for sibling in children.iter() {
+            if found {
+              if let NodeData::Text { contents } = &sibling.data {
+                let mut contents_mut = contents.borrow_mut();
+                if contents_mut.starts_with('\n') {
+                  *contents_mut = contents_mut.trim_start_matches('\n').into();
+                }
+              }
+              break;
+            }
+
+            if Rc::ptr_eq(sibling, node) {
+              found = true;
+            }
+          }
+        }
+      }
+    }
+    _ => {}
+  }
+
+  // Recursively clean child nodes
+  for child in node.children.borrow().iter() {
+    clean_node(child);
+  }
 }
 
 #[mlua::lua_module]
 fn markdown_to_html_lib(lua: &Lua) -> Result<mlua::Table> {
-    let exports = lua.create_table()?;
-    let options = Options::ENABLE_STRIKETHROUGH
-        | Options::ENABLE_TABLES
-        | Options::ENABLE_TASKLISTS
-        | Options::ENABLE_FOOTNOTES
-        | Options::ENABLE_MATH;
-    exports.set(
-        "md_to_html",
-        lua.create_function(move |_, markdown: String| Ok(markdown_to_html(&markdown, options)))?,
-    )?;
-    Ok(exports)
+  let exports = lua.create_table()?;
+  let options = Options::ENABLE_STRIKETHROUGH
+    | Options::ENABLE_TABLES
+    | Options::ENABLE_TASKLISTS
+    | Options::ENABLE_FOOTNOTES
+    | Options::ENABLE_MATH;
+  exports.set(
+    "md_to_html",
+    lua.create_function(move |_, markdown: String| Ok(markdown_to_html(&markdown, options)))?,
+  )?;
+  Ok(exports)
 }

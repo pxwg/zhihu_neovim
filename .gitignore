@@ -8,3 +8,4 @@ doc_test/
 build/
 target
 */Cargo.lock
+Cargo.lock

@@ -15,5 +15,7 @@ lua54 = ["mlua/lua54"]
 luajit = ["mlua/luajit"]
 
 [dependencies]
+html5ever = "0.35.0"
+markup5ever_rcdom = "0.35.0"
 mlua = { version = "0.11.1", features = ["module", "serialize"] }
 pulldown-cmark = "0.13.0"
