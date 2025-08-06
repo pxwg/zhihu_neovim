@@ -145,6 +145,7 @@ function M.get_ft_by_pattern(pattern, extension)
 end
 
 ---Get filetypes by patterns
+---HACK: Somehow some important file type could not be detected by `vim.filetype.match` defaultly, so we introduced `opts.extension` to temporarily solve this problem.
 ---@param pattern string[] Patterns to match filetypes e.g `{"*.md", "*.txt"}`
 ---@param extension table<string, string>? A table containing file extensions and their associated commands, e.g. `extension = { md = "Markdown" }`
 ---@return string[] filetypes A list of matched filetypes
