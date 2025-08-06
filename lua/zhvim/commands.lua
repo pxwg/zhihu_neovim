@@ -30,6 +30,16 @@ local function init_draft(cmd_opts, opts)
   local filetypes = util.get_ft_by_patterns(opts.patterns, opts.extension)
   local md_content = { content = "", title = "" }
 
+  if filetype == "html" then
+    md_content = {
+      content = table.concat(buf_content, "\n"),
+      title = vim.fn.expand("%:t:r"),
+    }
+    print(vim.inspect(md_content))
+    upl.init_draft(md_content, cookies)
+    return
+  end
+
   if filetype ~= "markdown" and filetype ~= "md" and vim.tbl_contains(filetypes, filetype) then
     local content_string = table.concat(buf_content, "\n")
     local content_input = {
@@ -39,7 +49,7 @@ local function init_draft(cmd_opts, opts)
     }
     md_content = script.execute_user_script(opts, filetype, content_input)
     md_content = {
-      content = vim.split(md_content.content, "\n", { plain = true }),
+      content = md_content.content,
       title = md_content.title or vim.fn.expand("%:t:r"),
     }
   end
@@ -53,9 +63,8 @@ local function init_draft(cmd_opts, opts)
     -- local content_input = table.concat(content, "\n")
     local content_input = util.remove_inline_formula_whitespace(0)
     content_input = html.update_md_images(content_input, cookies)
-    local content_output = vim.split(content_input, "\n", { plain = true })
     md_content = {
-      content = content_output,
+      content = content_input,
       title = title,
     }
   end
@@ -75,6 +84,7 @@ local function init_draft(cmd_opts, opts)
     end
   else
     local html_content, error = html.convert_md_to_html(md_content)
+    print(vim.inspect(html_content))
     if html_content and error == nil then
       upl.update_draft(file_id, html_content, cookies)
       vim.api.nvim_echo({ { "Draft updated with ID: " .. file_id, "Msg" } }, true, {})
