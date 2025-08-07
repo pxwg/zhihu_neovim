@@ -1,5 +1,7 @@
 # Zhihu on Neovim
 
+[中文版](./doc/zh_cn.md)
+
 Using [neovim](https://github.com/neovim/neovim) to level up your [zhihu](https://www.zhihu.com/) writing, inspired by [zhihu_obsidian](https://github.com/dongguaguaguagua/zhihu_obsidian).
 
 ## Installation
