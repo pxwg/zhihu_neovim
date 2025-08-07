@@ -1,3 +1,4 @@
+local util = require("zhvim.util")
 local M = {}
 
 ---@class upload_token
@@ -338,6 +339,9 @@ end
 ---@param upload_file upload_file File information for the image
 ---@return string|nil New image URL or nil if upload failed
 function M.get_image_link(image_path, upload_token, upload_file)
+  local base_dir = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":h")
+  image_path = util.get_absolute_path(image_path, base_dir)
+
   local img_hash = M.read_file_and_hash(image_path)
   if not img_hash then
     vim.notify("Failed to read or hash the file: " .. image_path, vim.log.levels.ERROR)

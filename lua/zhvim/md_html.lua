@@ -17,25 +17,15 @@ local function get_plugin_root()
   return string.gsub(dir, "lua/zhvim/$", "")
 end
 
----Upload local Markdown figure to Zhihu and replace the link with the uploaded image link.
----@param md_content string Markdown content to be processed
----@param cookies string Authentication cookies for Zhihu API
----@return string Updated Markdown content with new image links
-function M.update_md_images(md_content, cookies)
-  local bufnr = vim.api.nvim_get_current_buf()
-  local parser = vim.treesitter.get_parser(bufnr, "markdown_inline")
-  if not parser then
-    vim.notify("Treesitter parser for markdown is not available", vim.log.levels.ERROR)
-    return md_content
-  end
-
-  local tree = parser:parse()[1]
-  local root = tree:root()
+-- Traverse the syntax tree to find image nodes and collect changes
+local function get_md_image_changes(root, bufnr, cookies)
   local changes = {}
 
-  -- Helper function to upload an image and return the new URL
   local function upload_image(uri)
     local file_path = vim.fn.expand(uri)
+    local base_dir = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":h")
+    file_path = util.get_absolute_path(file_path, base_dir)
+
     local file_exists = vim.fn.filereadable(file_path) == 1
     if not file_exists then
       vim.notify("File does not exist: " .. file_path, vim.log.levels.ERROR)
@@ -56,7 +46,6 @@ function M.update_md_images(md_content, cookies)
     return result
   end
 
-  -- Traverse the syntax tree to find image nodes
   local function process_node(node)
     if node:type() == "image" then
       local url_node = nil
@@ -79,12 +68,40 @@ function M.update_md_images(md_content, cookies)
       process_node(child)
     end
   end
+
   process_node(root)
-  -- Apply changes to the content
+  return changes
+end
+
+---Upload local Markdown figure to Zhihu and replace the link with the uploaded image link.
+---Create a scratch buffer to fit the condition that filetype is not markdown.
+---@param md_content string Markdown content to be processed
+---@param cookies string Authentication cookies for Zhihu API
+---@return string Updated Markdown content with new image links
+function M.update_md_images(md_content, cookies)
+  local bufnr = vim.api.nvim_create_buf(false, true)
+  -- Set filetype to markdown to enable Treesitter
+  vim.bo[bufnr].filetype = "markdown"
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(md_content, "\n"))
+
+  local ok, parser = pcall(vim.treesitter.get_parser, bufnr, "markdown_inline")
+  if not ok or not parser then
+    vim.api.nvim_buf_delete(bufnr, { force = true })
+    vim.notify("Treesitter parser for markdown is not available", vim.log.levels.ERROR)
+    return md_content
+  end
+
+  local tree = parser:parse()[1]
+  local root = tree:root()
+
+  local changes = get_md_image_changes(root, bufnr, cookies)
+
   for _, change in ipairs(changes) do
     local start_row, start_col, end_row, end_col = change.node:range()
-    md_content = util.replace_text(md_content, start_row - 1, start_col, end_row - 1, end_col, change.new_text)
+    md_content = util.replace_text(md_content, start_row, start_col, end_row, end_col, change.new_text)
   end
+
+  vim.api.nvim_buf_delete(bufnr, { force = true })
   return md_content
 end
 
