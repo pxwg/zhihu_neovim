@@ -5,6 +5,8 @@
 使用 [neovim](https://github.com/neovim/neovim) 提升你的 [知乎](https://www.zhihu.com/) 写作体验，灵感来源于 [zhihu_obsidian](https://github.com/dongguaguaguagua/zhihu_obsidian)。
 
 ## 安装
+
+> 使用`lazy.nvim` 安装：
 ```lua
 return {
   "pxwg/zhihu_neovim",
@@ -17,6 +19,7 @@ return {
       typst = {
         pattern = "*.typ",
         extension = { typ = "typst" },
+        script = your_script, -- your custom script function
       },
     },
   },
@@ -105,5 +108,5 @@ end
 - 添加 [blink-cmp](https://github.com/Saghen/blink.cmp) 支持，用于自动补全 @用户 和 #话题；
 - 开发和测试更健壮的转换库，以 100% 兼容知乎的 HTML 格式。
 
-## 不会做的事情
+## 不支持的功能
 - 在 Neovim 中阅读知乎。

@@ -5,6 +5,8 @@
 Using [neovim](https://github.com/neovim/neovim) to level up your [zhihu](https://www.zhihu.com/) writing, inspired by [zhihu_obsidian](https://github.com/dongguaguaguagua/zhihu_obsidian).
 
 ## Installation
+
+> Using `lazy.nvim`
 ```lua
 return {
   "pxwg/zhihu_neovim",
@@ -17,6 +19,7 @@ return {
       typst = {
         pattern = "*.typ",
         extension = { typ = "typst" },
+        script = your_script, -- your custom script function
       },
     },
   },
