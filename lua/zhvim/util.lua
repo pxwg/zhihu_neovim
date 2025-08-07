@@ -173,4 +173,32 @@ function M.get_absolute_path(path, base_dir)
   return vim.fn.resolve(vim.fn.fnamemodify(path, ":p"))
 end
 
+---Get all patterns from ZhnvimConfigs
+---@param config ZhnvimConfigs
+---@return table<string>
+function M.get_all_patterns(config)
+  local patterns = {}
+  for _, v in pairs(config.script) do
+    if v.pattern then
+      table.insert(patterns, v.pattern)
+    end
+  end
+  return patterns
+end
+
+---Generate extension table from config
+---@param config ZhnvimConfigs
+---@return table
+function M.merge_extension_table(config)
+  local merged = {}
+  for _, v in pairs(config.script) do
+    if v.extension then
+      for ext, filetype in pairs(v.extension) do
+        merged[ext] = filetype
+      end
+    end
+  end
+  return merged
+end
+
 return M
