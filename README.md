@@ -6,7 +6,7 @@ Using [neovim](https://github.com/neovim/neovim) to level up your [zhihu](https:
 ```lua
 return {
   "pxwg/zhihu_neovim",
-  build = "deploy.sh",
+  build = "bash deploy.sh",
   ft = { "markdown" },
   main = "zhvim",
   ---@type ZhnvimConfigs
@@ -18,6 +18,11 @@ return {
   },
 }
 ```
+
+## Dependency
+
+<!-- TODO: Add dependency management. -->
+- Rust tool chain, curl, python.
 
 ## Usage
 

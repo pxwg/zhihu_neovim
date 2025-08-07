@@ -30,6 +30,17 @@ local function init_draft(cmd_opts, opts)
   local filetypes = util.get_ft_by_patterns(opts.patterns, opts.extension)
   local md_content = { content = "", title = "" }
 
+  -- TODO: debug mode
+  -- debug test
+  -- if filetype == "html" then
+  --   md_content = {
+  --     content = table.concat(buf_content, "\n"),
+  --     title = vim.fn.expand("%:t:r"),
+  --   }
+  --   upl.init_draft(md_content, cookies)
+  --   return
+  -- end
+
   if filetype ~= "markdown" and filetype ~= "md" and vim.tbl_contains(filetypes, filetype) then
     local content_string = table.concat(buf_content, "\n")
     local content_input = {
@@ -38,24 +49,23 @@ local function init_draft(cmd_opts, opts)
       title = vim.fn.expand("%:t:r"),
     }
     md_content = script.execute_user_script(opts, filetype, content_input)
+    local content_uploaded = html.update_md_images(content_input.content, cookies)
     md_content = {
-      content = vim.split(md_content.content, "\n", { plain = true }),
+      content = content_uploaded,
       title = md_content.title or vim.fn.expand("%:t:r"),
     }
   end
 
   if filetype == "markdown" or filetype == "md" then
     local title, _ = util.get_markdown_title(0)
-    -- local content = vim.api.nvim_buf_get_lines(0, 1, -1, false)
+    local content = vim.api.nvim_buf_get_lines(0, 1, -1, false)
     if cmd_opts and cmd_opts.fargs and #cmd_opts.fargs > 0 then
       title = cmd_opts.fargs[1]
     end
-    -- local content_input = table.concat(content, "\n")
-    local content_input = util.remove_inline_formula_whitespace(0)
+    local content_input = table.concat(content, "\n")
     content_input = html.update_md_images(content_input, cookies)
-    local content_output = vim.split(content_input, "\n", { plain = true })
     md_content = {
-      content = content_output,
+      content = content_input,
       title = title,
     }
   end
