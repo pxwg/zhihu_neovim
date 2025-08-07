@@ -132,7 +132,7 @@ impl EventProcessor for MarkdownEventProcessor {
   }
 }
 
-fn markdown_to_html(input: &str, options: Options) -> String {
+pub fn markdown_to_html(input: &str, options: Options) -> String {
   let parser = Parser::new_ext(input, options);
   let mut processor = MarkdownEventProcessor::new();
 

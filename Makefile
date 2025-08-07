@@ -53,6 +53,10 @@ lint:
 	cargo clippy --all-features -- -D warnings
 
 test:
-	cargo test --all-features
+	@if [ "$(UNAME)" = "Darwin" ]; then \
+		RUSTFLAGS="-C link-args=-undefined -C link-args=dynamic_lookup" cargo test --features=lua51; \
+	else \
+		RUSTFLAGS="-C link-args=-Wl,-soname,libmarkdown_to_html.$(EXT)" cargo test --features=lua51; \
+	fi
 
 .PHONY: all $(LUA_VERSIONS) all_versions clean lint test

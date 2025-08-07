@@ -1,6 +1,7 @@
 [lib]
 name = "markdown_to_html"
-crate-type = ["cdylib"]
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
 
 [package]
 name = "markdown_to_html"
