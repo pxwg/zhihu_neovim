@@ -27,7 +27,9 @@ local function init_draft(cmd_opts, opts)
     return
   end
   local filetype = vim.bo.filetype
-  local filetypes = util.get_ft_by_patterns(opts.patterns, opts.extension)
+  local patterns = util.get_all_patterns(opts)
+  local extension = util.merge_extension_table(opts)
+  local filetypes = util.get_ft_by_patterns(patterns, extension)
   local md_content = { content = "", title = "" }
 
   -- TODO: debug mode
@@ -170,8 +172,10 @@ end
 function M.setup_autocmd(opts)
   local autocmd = vim.api.nvim_create_autocmd
   --- Set up autocmds in opts.filetype to avoid the default save mechanism of Neovim (which can disrupt inode-based file detection)
-  autocmd("BufWritePre", { pattern = opts.patterns, command = "set nowritebackup" })
-  autocmd("BufWritePost", { pattern = opts.patterns, command = "set writebackup" })
+  local patterns
+  util.get_all_patterns(opts)
+  autocmd("BufWritePre", { pattern = patterns, command = "set nowritebackup" })
+  autocmd("BufWritePost", { pattern = patterns, command = "set writebackup" })
 end
 
 return M

@@ -3,17 +3,22 @@
 ---@field title string The title of the input file.
 ---@field path string The path of the input file.
 
+---@class ZhnvimConfigs.FiletypesScript
+---@field pattern string The blob pattern of the file type, which is used to match the file type.
+---@field extension? table<string, string> Somehow some important file type could not be detected by `vim.filetype.match` defaultly, so we introduce this.
+---@field script? fun(input_content:input_content): md_content The function to execute the script, which takes an input_content and returns a md_content.
+
 ---@class ZhnvimConfigs
----@field patterns string[] Filetypes to apply the commands to e.g. `patterns = {"*.md", "*.typ"}`
----@field script table<string, fun(input_content:input_content): md_content> A table containing the vim script to execute and its associated filetype, e.g. `script = { typst = your_script_function }`
----@field extension table<string, string> A table containing file extensions and their associated commands, e.g. `extension = { md = "Markdown" }`
+---@field script table<string, ZhnvimConfigs.FiletypesScript> A table of filetype scripts.
 
 ---@type ZhnvimConfigs
 local default_config = {
-  patterns = { "*.typ" },
-  ---Somehow some important file type could not be detected by `vim.filetype.match` defaultly, so we introduce this.
-  extension = { typ = "typst" },
-  script = {},
+  script = {
+    typst = {
+      pattern = "*.typ",
+      extension = { typ = "typst" },
+    },
+  },
 }
 
 return default_config

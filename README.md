@@ -1,5 +1,7 @@
 # Zhihu on Neovim
 
+[中文版](./doc/zh_cn.md)
+
 Using [neovim](https://github.com/neovim/neovim) to level up your [zhihu](https://www.zhihu.com/) writing, inspired by [zhihu_obsidian](https://github.com/dongguaguaguagua/zhihu_obsidian).
 
 ## Installation
@@ -11,10 +13,12 @@ return {
   main = "zhvim",
   ---@type ZhnvimConfigs
   opts = {
-    patterns = { "*.typ" },
-    ---Somehow some important file type could not be detected by `vim.filetype.match` defaultly, so we introduce this.
-    extension = { typ = "typst" },
-    script = {},
+    script = {
+      typst = {
+        pattern = "*.typ",
+        extension = { typ = "typst" },
+      },
+    },
   },
 }
 ```
@@ -31,8 +35,64 @@ return {
 - Run `:ZhihuDraft` to int/update the draft;
     - If the file type is `markdown`, this plugin will automatically detect it and convert it into a Zhihu-flavored HTML, then using the Zhihu API with your cookie to upload it to your draft box;
   - If the file type matches the `patterns` in the configuration, you need to using some scripts (`pandoc` may be useful) to convert it into [CommonMark](https://spec.commonmark.org/), then this plugin will convert it into Zhihu-flavored HTML and upload it to your draft box;
-- Run `ZhihuOpen` to open the draft box in your browser;
+- Run `:ZhihuOpen` to open the draft box in your browser;
 - Run `:ZhihuSync` to enter the diff page, compare the differences between the Zhihu web version and the local Markdown file, and use Neovim's built-in `diff` feature to edit the differences.
+
+### Conversion Script
+
+`zhihu_on_neovim` offers a conversion API (implemented in Rust, compiled as a Lua dynamic library) to convert local CommonMark files to Zhihu-flavored HTML and upload them as drafts.
+
+By default, only `.md` files are directly supported. If your input is not Markdown, you can define a custom Lua script to convert it to CommonMark first, then use the API for further conversion and upload.
+
+```mermaid
+graph LR
+    A[Input File] -->|is .md| B[zhnvim]
+    B --> C[md_html]
+    C --> D[upload]
+
+    A -->|not .md & configured| E[user_script]
+    E --> F[md_file]
+    F --> B
+```
+
+Custom scripts should be Lua functions with this signature:
+```lua
+---@param input input_content
+---@return output md_content
+local your_script = function(input)
+  -- your logic here
+  return output
+end
+```
+Where `input_content` contains:
+```lua
+---@field content string  -- file content
+---@field title string    -- file title
+---@field path string     -- file path
+```
+And `md_content` should return:
+```lua
+---@field content_md string  -- Markdown content
+---@field title_md string    -- Markdown title
+```
+
+Example: using `pandoc` to convert a Typst file to Markdown with a user defined Lua filter:
+```lua
+local function typst_script(content)
+  local cmd = {
+    "pandoc",
+    content.path,
+    "-t",
+    "markdown",
+    "--lua-filter=" .. vim.fn.stdpath("config") .. "/typ_md.lua",
+  }
+  local result = vim.fn.system(cmd)
+  if vim.v.shell_error ~= 0 then
+    return { title = content.title, content = "Error: " .. result }
+  end
+  return { title = content.title, content = result }
+end
+```
 
 ## Value
 - Convert local markdown files into Zhihu articles and send them to the draft box;
