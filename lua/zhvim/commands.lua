@@ -47,9 +47,10 @@ local function init_draft(cmd_opts, opts)
       content = content_string,
       --TODO: user script to get title
       title = vim.fn.expand("%:t:r"),
+      path = filepath,
     }
     md_content = script.execute_user_script(opts, filetype, content_input)
-    local content_uploaded = html.update_md_images(content_input.content, cookies)
+    local content_uploaded = html.update_md_images(md_content.content, cookies)
     md_content = {
       content = content_uploaded,
       title = md_content.title or vim.fn.expand("%:t:r"),

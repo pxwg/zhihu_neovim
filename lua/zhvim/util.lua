@@ -162,4 +162,15 @@ function M.get_ft_by_patterns(pattern, extension)
   return filetypes
 end
 
+---Get absolute path from a relative path.
+---@param path string
+---@param base_dir string
+---@return string
+function M.get_absolute_path(path, base_dir)
+  if string.sub(path, 1, 1) ~= "/" then
+    path = base_dir .. "/" .. path
+  end
+  return vim.fn.resolve(vim.fn.fnamemodify(path, ":p"))
+end
+
 return M

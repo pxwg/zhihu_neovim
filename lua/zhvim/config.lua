@@ -1,6 +1,7 @@
 ---@class input_content
 ---@field content string The content of the input file.
 ---@field title string The title of the input file.
+---@field path string The path of the input file.
 
 ---@class ZhnvimConfigs
 ---@field patterns string[] Filetypes to apply the commands to e.g. `patterns = {"*.md", "*.typ"}`
