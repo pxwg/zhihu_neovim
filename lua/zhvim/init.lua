@@ -13,15 +13,21 @@ M.setup = function(opts)
       local cookies = require("zhvim.get_cookie").get_zhihu_cookies(config.browser)
       if not cookies or cookies.d_c0 == "" or cookies.z_c0 == "" then
         vim.notify("Failed to get Zhihu cookies from Firefox", vim.log.levels.ERROR)
-        vim.g.zhvim_cookies = vim.env.ZHIVIM_COOKIES or ""
+        vim.g.zhvim_cookies = vim.env.ZHIVIM_COOKIES
       end
       local cookie_str = require("zhvim.util").table_to_cookie(cookies)
       if cookie_str then
         vim.g.zhvim_cookies = cookie_str
       else
-        vim.notify("Failed to get Zhihu cookies from Firefox", vim.log.levels.ERROR)
+        vim.notify("Failed to get Zhihu cookies from Firefox, try to load from ZHIVIM_COOKIES.", vim.log.levels.WARN)
         vim.g.zhvim_cookies = vim.env.ZHIVIM_COOKIES
       end
+    else
+      vim.g.zhvim_cookies = vim.env.ZHIVIM_COOKIES
+        or vim.notify(
+          "Could not find cookies, please set ZHIVIM_COOKIES environment variable or set opts.browser = 'firefox' to use Firefox cookies.",
+          vim.log.levels.ERROR
+        )
     end
 
     require("zhvim.commands").setup_commands(config)

@@ -79,11 +79,11 @@ function M.get_cookies_path(browser)
 end
 
 ---Extract Zhihu cookies from Firefox database
----@return table<string, string|nil> cookies Table with d_c0 and z_c0 cookies
+---@return table<string, string> cookies Table with d_c0 and z_c0 cookies
 local function get_zhihu_cookies_firefox()
   local cookies_db = get_firefox_cookies_path()
   if not cookies_db then
-    return { d_c0 = nil, z_c0 = nil }
+    return { d_c0 = "", z_c0 = "" }
   end
 
   local d_c0_cmd =
@@ -113,7 +113,7 @@ local function get_zhihu_cookies_firefox()
 end
 
 ---Extract Zhihu cookies from Chrome database
----@return table<string, string|nil> cookies Table with d_c0 and z_c0 cookies
+---@return table<string, string> cookies Table with d_c0 and z_c0 cookies
 local function get_zhihu_cookies_chrome()
   local cookies_db = get_chrome_cookies_path()
   if not cookies_db then
@@ -130,7 +130,7 @@ local function get_zhihu_cookies_chrome()
 
   if not d_c0_handle or not z_c0_handle then
     vim.notify("Failed to execute sqlite3 command", vim.log.levels.ERROR)
-    return { d_c0 = nil, z_c0 = nil }
+    return { d_c0 = "", z_c0 = "" }
   end
 
   local d_c0 = d_c0_handle:read("*l")
