@@ -5,7 +5,7 @@ local md = require("zhvim.html_md")
 local sync = require("zhvim.article_sync")
 local upl = require("zhvim.article_upload")
 local util = require("zhvim.util")
-local cookies = vim.env.ZHIVIM_COOKIES or vim.g.zhvim_cookies
+local cookies = vim.g.zhvim_cookies
 local script = require("zhvim.script")
 
 ---@param cmd_opts table? Options for the command

@@ -10,6 +10,7 @@
 
 ---@class ZhnvimConfigs
 ---@field script table<string, ZhnvimConfigs.FiletypesScript> A table of filetype scripts.
+---@field browser? 'firefox'|'chrome' The browser which have alrady logged in Zhihu, which is used to extract cookies from the browser.
 
 ---@type ZhnvimConfigs
 local default_config = {

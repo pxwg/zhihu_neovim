@@ -201,4 +201,15 @@ function M.merge_extension_table(config)
   return merged
 end
 
+---Convert a table<string, string> to a valid Cookie string
+---@param t table<string, string>
+---@return string
+function M.table_to_cookie(t)
+  local cookie = {}
+  for k, v in pairs(t) do
+    table.insert(cookie, k .. "=" .. v)
+  end
+  return table.concat(cookie, "; ")
+end
+
 return M
