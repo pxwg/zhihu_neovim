@@ -8,6 +8,7 @@ pub trait EventProcessor {
   fn process_display_math(&self, text: &str) -> Event<'static>;
   fn process_image_start(&mut self, dest_url: &str) -> Event<'static>;
   fn process_image_alt_text(&mut self, text: &str) -> Event<'static>;
+  fn process_image_end(&mut self) -> Event<'static>;
   fn process_code_block_start(&mut self, kind: CodeBlockKind) -> Event<'static>;
   fn process_code_block_end(&mut self) -> Event<'static>;
   fn process_soft_break(&self, in_code_block: bool) -> Event<'static>;
@@ -18,6 +19,7 @@ pub trait EventProcessor {
 pub struct MarkdownEventProcessor {
   pub in_code_block: bool,
   pub current_image_url: Option<String>,
+  pub current_image_alt: Option<String>,
   pub code_block_content: Option<String>,
   pub code_block_info: Option<String>,
   pub in_table_head: bool,
@@ -28,6 +30,7 @@ impl MarkdownEventProcessor {
     Self {
       in_code_block: false,
       current_image_url: None,
+      current_image_alt: None,
       code_block_content: None,
       code_block_info: None,
       in_table_head: false,
@@ -60,12 +63,20 @@ impl EventProcessor for MarkdownEventProcessor {
 
   fn process_image_start(&mut self, dest_url: &str) -> Event<'static> {
     self.current_image_url = Some(dest_url.to_string());
+    self.current_image_alt = Some(String::new());
     Event::Text("".into())
   }
 
   fn process_image_alt_text(&mut self, text: &str) -> Event<'static> {
+    if let Some(ref mut alt) = self.current_image_alt {
+      alt.push_str(text);
+    }
+    Event::Text("".into())
+  }
+
+  fn process_image_end(&mut self) -> Event<'static> {
     let dest_url = self.current_image_url.take().unwrap();
-    let caption = text.to_string();
+    let caption = self.current_image_alt.take().unwrap_or_default();
     Event::Html(
             format!(
                 "<img src=\"{}\" data-caption=\"{}\" data-size=\"normal\" data-watermark=\"watermark\" data-original-src=\"{}\" data-watermark-src=\"\" data-private-watermark-src=\"\" />",
@@ -143,6 +154,7 @@ pub fn markdown_to_html(input: &str, options: Options) -> String {
     Event::Text(text) if processor.current_image_url.is_some() => {
       processor.process_image_alt_text(&text)
     }
+    Event::End(TagEnd::Image) => processor.process_image_end(),
     Event::Start(Tag::CodeBlock(kind)) => processor.process_code_block_start(kind),
     Event::End(TagEnd::CodeBlock) => processor.process_code_block_end(),
     Event::SoftBreak => processor.process_soft_break(processor.in_code_block),
