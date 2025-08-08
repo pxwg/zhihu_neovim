@@ -11,6 +11,7 @@ Using [neovim](https://github.com/neovim/neovim) to level up your [zhihu](https:
 return {
   "pxwg/zhihu_neovim",
   build = "bash deploy.sh",
+  dependencies = { "nvim-lua/plenary.nvim" },
   ft = { "markdown" },
   main = "zhvim",
   ---@type ZhnvimConfigs
@@ -29,7 +30,7 @@ return {
 ## Dependency
 
 <!-- TODO: Add dependency management. -->
-- Rust tool chain, curl, python.
+- Rust tool chain, python.
 
 ## Usage
 
