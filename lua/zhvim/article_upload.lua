@@ -1,3 +1,4 @@
+local curl = require("plenary.curl")
 local util = require("zhvim.util")
 local M = {}
 
@@ -93,27 +94,22 @@ function M.init_draft(html_content, cookies)
     can_reward = false,
   }
 
-  -- Filter out illegal characters from the content
-  local draft_body_json = vim.fn.json_encode(draft_body):gsub("'", "'\\''")
   local headers = {
-    "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
-    "Content-Type: application/json",
-    "Cookie: " .. cookies,
-    "x-requested-with: fetch",
+    ["User-Agent"] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+    ["Content-Type"] = "application/json",
+    ["Cookie"] = cookies,
+    ["x-requested-with"] = "fetch",
   }
 
-  local curl_command = string.format(
-    [[curl -s -X POST %s -H "%s" -H "%s" -H "%s" -H "%s" -d '%s']],
-    draft_url,
-    headers[1],
-    headers[2],
-    headers[3],
-    headers[4],
-    draft_body_json
-  )
+  local response = curl.post(draft_url, {
+    headers = headers,
+    body = vim.fn.json_encode(draft_body),
+  })
 
-  local response = execute_curl_command(curl_command)
-  local draft_response = vim.fn.json_decode(response)
+  local draft_response = nil
+  if response and response.body then
+    draft_response = vim.fn.json_decode(response.body)
+  end
 
   if draft_response and draft_response.id then
     return draft_response.id, html_content.content
@@ -129,6 +125,7 @@ end
 ---@param cookies number
 function M.update_draft(draft_id, html_content, cookies)
   local patch_url = string.format("https://zhuanlan.zhihu.com/api/articles/%s/draft", draft_id)
+
   local patch_body = {
     title = html_content.title,
     content = html_content.content,
@@ -137,40 +134,19 @@ function M.update_draft(draft_id, html_content, cookies)
     can_reward = false,
   }
 
-  local patch_body_json = vim.fn.json_encode(patch_body)
-  local temp_file_path = "/tmp/nvim_zhihu_html_content_input.json"
-
-  local temp_file = io.open(temp_file_path, "w")
-  if temp_file then
-    temp_file:write(patch_body_json)
-    temp_file:close()
-  else
-    vim.notify("Failed to create temporary file.", vim.log.levels.ERROR)
-    return
-  end
-
   local headers = {
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
-    "Content-Type: application/json",
-    "Cookie: " .. cookies,
-    "x-requested-with: fetch",
+    ["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+    ["Content-Type"] = "application/json",
+    ["Cookie"] = cookies,
+    ["x-requested-with"] = "fetch",
   }
 
-  local curl_command = string.format(
-    [[curl -s -X PATCH %s -H "%s" -H "%s" -H "%s" -H "%s" --data-binary @%s]],
-    patch_url,
-    headers[1],
-    headers[2],
-    headers[3],
-    headers[4],
-    temp_file_path
-  )
+  local response = curl.patch(patch_url, {
+    headers = headers,
+    body = vim.fn.json_encode(patch_body),
+  })
 
-  local response = execute_curl_command(curl_command)
-
-  os.remove(temp_file_path)
-
-  if response then
+  if response and response.status and response.status >= 200 and response.status < 300 then
     vim.notify("Updated draft successfully.", vim.log.levels.INFO)
   else
     vim.notify("Error updating draft.", vim.log.levels.ERROR)
@@ -182,43 +158,25 @@ end
 ---@param cookie string Authentication cookie for Zhihu API
 ---@return upload_response|nil
 function M.get_image_id_from_hash(img_hash, cookie)
+  local url = "https://api.zhihu.com/images"
+
   local headers = {
-    "Content-Type: application/json",
-    "Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2",
-    "Cookie: " .. cookie,
+    ["Content-Type"] = "application/json",
+    ["Accept-Language"] = "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2",
+    ["Cookie"] = cookie,
   }
-  local body = vim.fn.json_encode({
+  local body = {
     image_hash = img_hash,
     source = "article",
+  }
+
+  local response = curl.post(url, {
+    headers = headers,
+    body = vim.fn.json_encode(body),
   })
-
-  local temp_file_path = "/tmp/nvim_zhihu_image_hash_input.json"
-
-  -- Write the JSON body to the temporary file
-  local temp_file = io.open(temp_file_path, "w")
-  if temp_file then
-    temp_file:write(body)
-    temp_file:close()
-  else
-    vim.notify("Failed to create temporary file.", vim.log.levels.ERROR)
-    return nil
-  end
-
-  local curl_command = string.format(
-    [[curl -s -X POST https://api.zhihu.com/images -H "%s" -H "%s" -H "%s" --data-binary @%s]],
-    headers[1],
-    headers[2],
-    headers[3],
-    temp_file_path
-  )
-
-  local response = execute_curl_command(curl_command)
-
-  os.remove(temp_file_path)
-
   local result = nil
-  if response then
-    local parsed_response = vim.fn.json_decode(response)
+  if response and response.body then
+    local parsed_response = vim.fn.json_decode(response.body)
     result = parsed_response
     if result then
       vim.notify("Image ID retrieved successfully.", vim.log.levels.INFO)
@@ -294,39 +252,28 @@ function M.upload_image(image_path, upload_token)
   end
 
   local headers = {
-    "User-Agent: " .. ua,
-    "Accept-Encoding: gzip, deflate, br, zstd",
-    "Content-Type: " .. mime_type,
-    "Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2",
-    "x-oss-date: " .. utc_date,
-    "x-oss-user-agent: " .. ua,
-    "x-oss-security-token: " .. upload_token.access_token,
-    "Authorization: OSS " .. upload_token.access_id .. ":" .. signature,
+    ["User-Agent"] = ua,
+    ["Accept-Encoding"] = "gzip, deflate, br, zstd",
+    ["Content-Type"] = mime_type,
+    ["Accept-Language"] = "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2",
+    ["x-oss-date"] = utc_date,
+    ["x-oss-user-agent"] = ua,
+    ["x-oss-security-token"] = upload_token.access_token,
+    ["Authorization"] = "OSS " .. upload_token.access_id .. ":" .. signature,
   }
-
-  -- Prepare headers for curl command
-  local curl_headers = ""
-  for _, header in ipairs(headers) do
-    curl_headers = curl_headers .. string.format('-H "%s" ', header)
-  end
 
   local file = assert(io.open(image_path, "rb"))
   local binary_data = file:read("*all")
   file:close()
 
-  local curl_command = string.format(
-    [[curl -s -X PUT https://zhihu-pics-upload.zhimg.com/v2-%s \
-  %s--data-binary @-]],
-    img_hash,
-    curl_headers
-  )
+  local url = string.format("https://zhihu-pics-upload.zhimg.com/v2-%s", img_hash)
+  local response = curl.put(url, {
+    headers = headers,
+    body = binary_data,
+  })
 
-  -- Sending the binary data to curl command and capturing the response
-  local handle = assert(io.popen(curl_command, "w"))
-  handle:write(binary_data)
-  local response = handle:close()
-  if response then
-    return response
+  if response and response.status and response.status >= 200 and response.status < 300 then
+    return response.body
   else
     vim.notify("Failed to upload image: " .. image_path, vim.log.levels.ERROR)
     return nil

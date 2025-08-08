@@ -11,6 +11,7 @@
 return {
   "pxwg/zhihu_neovim",
   build = "bash deploy.sh",
+  dependencies = { "nvim-lua/plenary.nvim" },
   ft = { "markdown" },
   main = "zhvim",
   ---@type ZhnvimConfigs
@@ -37,7 +38,7 @@ return {
 - 将你的 cookie 保存到全局变量 `$ZHIVIM_COOKIES` 或 `vim.g.zhvim_cookies` 中，插件将用它来验证你的知乎账户，且不会与任何第三方分享；
 - 运行 `:ZhihuDraft` 来创建或更新草稿；
     - 如果文件是 `markdown` 类型，插件会自动将其转换为知乎风格的 HTML 并上传到你的草稿箱；
-    - 如果文件类型匹配配置中的 `patterns`，你需要先通过自定义脚本（如 `pandoc`）将其转换为 [CommonMark](https://spec.commonmark.org/)，之后插件会完成后续的转换和上传；
+    - 如果文件类型匹配配置中的 `script[filetype]`，你需要先通过自定义脚本（如 `pandoc`）将其转换为 [CommonMark](https://spec.commonmark.org/)，之后插件会完成后续的转换和上传；
 - 运行 `:ZhihuOpen` 在浏览器中打开草稿箱；
 - 运行 `:ZhihuSync` 进入 diff 页面，对比云端和本地文件的差异，并使用 Neovim 内置的 `diff` 功能进行同步编辑。
 
