@@ -30,7 +30,7 @@ return {
 ## Dependency
 
 <!-- TODO: Add dependency management. -->
-- Rust tool chain, python.
+- Rust tool chain, curl, python.
 
 ## Usage
 

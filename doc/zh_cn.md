@@ -11,6 +11,7 @@
 return {
   "pxwg/zhihu_neovim",
   build = "bash deploy.sh",
+  dependencies = { "nvim-lua/plenary.nvim" },
   ft = { "markdown" },
   main = "zhvim",
   ---@type ZhnvimConfigs
