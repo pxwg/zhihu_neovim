@@ -67,6 +67,59 @@ local function assign_id(filepath, id)
   save_ids(ids)
 end
 
+---Update the ID of a file
+---@param filepath string
+---@param new_id string
+local function update_id(filepath, new_id)
+  local ids = load_ids()
+  local inode = get_inode(filepath)
+  if not inode then
+    vim.notify("Failed to get inode for " .. filepath, vim.log.levels.ERROR)
+    return
+  end
+  if ids[inode] then
+    ids[inode] = new_id
+    save_ids(ids)
+  else
+    vim.notify("No ID found for " .. filepath, vim.log.levels.WARN)
+  end
+end
+
+---Remove an ID from a file based on its inode
+---@param filepath string
+local function remove_id(filepath)
+  local ids = load_ids()
+  local inode = get_inode(filepath)
+  if not inode then
+    vim.notify("Failed to get inode for " .. filepath, vim.log.levels.ERROR)
+    return
+  end
+  if ids[inode] then
+    ids[inode] = nil
+    save_ids(ids)
+  else
+    vim.notify("No ID found for " .. filepath, vim.log.levels.WARN)
+  end
+end
+
+---Get the ID of a file based on its inode
+---@param filepath string
+---@return string|nil
+function M.get_inode(filepath)
+  local inode = get_inode(filepath)
+  if not inode then
+    vim.notify("Failed to get inode for " .. filepath, vim.log.levels.ERROR)
+    return nil
+  end
+  return inode
+end
+
+---Remove the ID of a file
+---@param filepath string
+function M.remove_id(filepath)
+  remove_id(filepath)
+end
+
 ---Check if a file has an assigned ID
 ---@param filepath string
 ---@return string|nil
@@ -81,6 +134,17 @@ end
 ---@param id string
 function M.assign_id(filepath, id)
   assign_id(filepath, id)
+end
+
+---Update the ID of a file
+---@param filepath string
+---@param new_id string
+function M.update_id(filepath, new_id)
+  if M.check_id(filepath) == nil then
+    M.assign_id(filepath, new_id)
+  else
+    update_id(filepath, new_id)
+  end
 end
 
 return M

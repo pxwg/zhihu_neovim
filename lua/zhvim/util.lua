@@ -212,4 +212,15 @@ function M.table_to_cookie(t)
   return table.concat(cookie, "; ")
 end
 
+---Extract Zhihu article ID from a URL if it matches the expected format.
+---@param url string
+---@return string|nil article_id The extracted article ID, or nil if not matched
+function M.extract_zhihu_article_id(url)
+  local prefix = "https://zhuanlan.zhihu.com/p/"
+  if vim.startswith(url, prefix) then
+    return url:sub(#prefix + 1)
+  end
+  return nil
+end
+
 return M
