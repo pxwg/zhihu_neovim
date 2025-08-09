@@ -83,30 +83,40 @@ end
 local function get_zhihu_cookies_firefox()
   local cookies_db = get_firefox_cookies_path()
   if not cookies_db then
-    return { d_c0 = "", z_c0 = "" }
-  end
-
-  local d_c0_cmd =
-    string.format("sqlite3 '%s' \"SELECT value FROM moz_cookies WHERE host='.zhihu.com' AND name='d_c0';\"", cookies_db)
-  local z_c0_cmd =
-    string.format("sqlite3 '%s' \"SELECT value FROM moz_cookies WHERE host='.zhihu.com' AND name='z_c0';\"", cookies_db)
-
-  local d_c0_handle = io.popen(d_c0_cmd)
-  local z_c0_handle = io.popen(z_c0_cmd)
-
-  if not d_c0_handle or not z_c0_handle then
-    vim.notify("Failed to execute sqlite3 command", vim.log.levels.ERROR)
     return { d_c0 = nil, z_c0 = nil }
   end
 
-  local d_c0 = d_c0_handle:read("*l")
-  local z_c0 = z_c0_handle:read("*l")
+  local d_c0_cmd = {
+    "sqlite3",
+    cookies_db,
+    "SELECT value FROM moz_cookies WHERE host='.zhihu.com' AND name='d_c0';",
+  }
+  local z_c0_cmd = {
+    "sqlite3",
+    cookies_db,
+    "SELECT value FROM moz_cookies WHERE host='.zhihu.com' AND name='z_c0';",
+  }
 
-  d_c0_handle:close()
-  z_c0_handle:close()
+  local d_c0_res = vim.system(d_c0_cmd, { text = true }):wait()
+  local z_c0_res = vim.system(z_c0_cmd, { text = true }):wait()
+
+  if d_c0_res.code ~= 0 or z_c0_res.code ~= 0 then
+    vim.notify(
+      "Failed to execute sqlite3 command: " .. (d_c0_res.stderr or "") .. (z_c0_res.stderr or ""),
+      vim.log.levels.ERROR
+    )
+    return { d_c0 = "", z_c0 = "" }
+  end
+
+  local d_c0 = vim.trim(d_c0_res.stdout or "")
+  local z_c0 = vim.trim(z_c0_res.stdout or "")
 
   if not d_c0 or not z_c0 then
-    vim.notify("Failed to get Zhihu cookies, make sure you are logged in via Firefox", vim.log.levels.ERROR)
+    if (d_c0 and d_c0:match("database is locked")) or (z_c0 and z_c0:match("database is locked")) then
+      vim.notify("The database is locked. Please try closing your browser and retry.", vim.log.levels.ERROR)
+    else
+      vim.notify("Failed to get Zhihu cookies, make sure you are logged in via Firefox", vim.log.levels.ERROR)
+    end
   end
 
   return { d_c0 = d_c0, z_c0 = z_c0 }
@@ -120,27 +130,37 @@ local function get_zhihu_cookies_chrome()
     return { d_c0 = nil, z_c0 = nil }
   end
 
-  local d_c0_cmd =
-    string.format("sqlite3 '%s' \"SELECT value FROM cookies WHERE host_key='.zhihu.com' AND name='d_c0';\"", cookies_db)
-  local z_c0_cmd =
-    string.format("sqlite3 '%s' \"SELECT value FROM cookies WHERE host_key='.zhihu.com' AND name='z_c0';\"", cookies_db)
+  local d_c0_cmd = {
+    "sqlite3",
+    cookies_db,
+    "SELECT value FROM cookies WHERE host_key='.zhihu.com' AND name='d_c0';",
+  }
+  local z_c0_cmd = {
+    "sqlite3",
+    cookies_db,
+    "SELECT value FROM cookies WHERE host_key='.zhihu.com' AND name='z_c0';",
+  }
 
-  local d_c0_handle = io.popen(d_c0_cmd)
-  local z_c0_handle = io.popen(z_c0_cmd)
+  local d_c0_res = vim.system(d_c0_cmd, { text = true }):wait()
+  local z_c0_res = vim.system(z_c0_cmd, { text = true }):wait()
 
-  if not d_c0_handle or not z_c0_handle then
-    vim.notify("Failed to execute sqlite3 command", vim.log.levels.ERROR)
+  if d_c0_res.code ~= 0 or z_c0_res.code ~= 0 then
+    vim.notify(
+      "Failed to execute sqlite3 command: " .. (d_c0_res.stderr or "") .. (z_c0_res.stderr or ""),
+      vim.log.levels.ERROR
+    )
     return { d_c0 = "", z_c0 = "" }
   end
 
-  local d_c0 = d_c0_handle:read("*l")
-  local z_c0 = z_c0_handle:read("*l")
-
-  d_c0_handle:close()
-  z_c0_handle:close()
+  local d_c0 = vim.trim(d_c0_res.stdout or "")
+  local z_c0 = vim.trim(z_c0_res.stdout or "")
 
   if not d_c0 or not z_c0 then
-    vim.notify("Failed to get Zhihu cookies, make sure you are logged in via Chrome", vim.log.levels.ERROR)
+    if (d_c0 and d_c0:match("database is locked")) or (z_c0 and z_c0:match("database is locked")) then
+      vim.notify("The database is locked. Please try closing your browser and retry.", vim.log.levels.ERROR)
+    else
+      vim.notify("Failed to get Zhihu cookies, make sure you are logged in via Firefox", vim.log.levels.ERROR)
+    end
   end
 
   return { d_c0 = d_c0, z_c0 = z_c0 }
