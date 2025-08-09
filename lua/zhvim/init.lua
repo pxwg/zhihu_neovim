@@ -16,7 +16,9 @@ M.setup = function(opts)
         vim.g.zhvim_cookies = cookie_str
       else
         vim.notify(
-          "Failed to get Zhihu cookies from Firefox, trying environment variable ZHIVIM_COOKIES.",
+          "Failed to get Zhihu cookies from "
+            .. config.browser
+            .. ", trying to load from environment variable `ZHIVIM_COOKIES`.",
           vim.log.levels.WARN
         )
         vim.g.zhvim_cookies = vim.env.ZHIVIM_COOKIES
