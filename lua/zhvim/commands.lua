@@ -158,6 +158,39 @@ local function sync_article()
   end
 end
 
+local function link_id(subcmd, link)
+  local filepath = vim.api.nvim_buf_get_name(0)
+  if subcmd == "attach" then
+    if not link or link == "" then
+      link = vim.fn.input("Enter the Zhihu article ID or URL: ")
+    end
+    if link == "" then
+      vim.notify("No link provided.", vim.log.levels.ERROR)
+      return
+    end
+    local new_id = util.extract_zhihu_article_id(link)
+    if not new_id then
+      vim.notify("Invalid Zhihu article link or ID.", vim.log.levels.ERROR)
+      return
+    end
+    buf_id.update_id(filepath, new_id)
+    vim.notify("Linked ID: " .. new_id, vim.log.levels.INFO)
+  elseif subcmd == "detach" then
+    if filepath == "" then
+      vim.api.nvim_echo(
+        { { "Buffer is not saved. Please save the file before removing the draft ID.", "ErrorMsg" } },
+        true,
+        { err = true }
+      )
+      return
+    end
+    buf_id.remove_id(filepath)
+    vim.api.nvim_echo({ { "Draft ID removed for this file.", "Msg" } }, true, {})
+  else
+    vim.notify("Usage: ZhihuLink [attach|detach] [link]", vim.log.levels.ERROR)
+  end
+end
+
 --- Module for setting up commands
 ---@param opts ZhnvimConfigs Options for the commands
 function M.setup_commands(opts)
@@ -166,6 +199,21 @@ function M.setup_commands(opts)
   end, { nargs = "*", complete = "file" })
   vim.api.nvim_create_user_command("ZhihuOpen", open_draft, {})
   vim.api.nvim_create_user_command("ZhihuSync", sync_article, {})
+  vim.api.nvim_create_user_command("ZhihuLink", function(cmd_opts)
+    link_id(cmd_opts.fargs[1], cmd_opts.fargs[2])
+  end, {
+    nargs = "*",
+    complete = function(_, line)
+      local completions = { "attach", "detach" }
+      local split = vim.split(line, "%s+")
+      if #split == 2 then
+        return vim.tbl_filter(function(item)
+          return vim.startswith(item, split[2])
+        end, completions)
+      end
+      return completions
+    end,
+  })
 end
 
 ---@param opts ZhnvimConfigs Options for the autocmds
