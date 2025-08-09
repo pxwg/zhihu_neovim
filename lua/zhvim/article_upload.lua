@@ -222,6 +222,8 @@ end
 -- print(vim.inspect(M.get_image_id_from_hash(hash, cookie)))
 
 ---Upload an image to Zhihu and return the response
+---Since the plenary.curl module does not support binary data upload,
+---we use the curl command line tool to upload the image.
 ---@param image_path string Absolute path to the image
 ---@param upload_token upload_token Authentication token for Zhihu API
 ---@return boolean|nil response
@@ -252,28 +254,39 @@ function M.upload_image(image_path, upload_token)
   end
 
   local headers = {
-    ["User-Agent"] = ua,
-    ["Accept-Encoding"] = "gzip, deflate, br, zstd",
-    ["Content-Type"] = mime_type,
-    ["Accept-Language"] = "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2",
-    ["x-oss-date"] = utc_date,
-    ["x-oss-user-agent"] = ua,
-    ["x-oss-security-token"] = upload_token.access_token,
-    ["Authorization"] = "OSS " .. upload_token.access_id .. ":" .. signature,
+    "User-Agent: " .. ua,
+    "Accept-Encoding: gzip, deflate, br, zstd",
+    "Content-Type: " .. mime_type,
+    "Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2",
+    "x-oss-date: " .. utc_date,
+    "x-oss-user-agent: " .. ua,
+    "x-oss-security-token: " .. upload_token.access_token,
+    "Authorization: OSS " .. upload_token.access_id .. ":" .. signature,
   }
+
+  -- Prepare headers for curl command
+  local curl_headers = ""
+  for _, header in ipairs(headers) do
+    curl_headers = curl_headers .. string.format('-H "%s" ', header)
+  end
 
   local file = assert(io.open(image_path, "rb"))
   local binary_data = file:read("*all")
   file:close()
 
-  local url = string.format("https://zhihu-pics-upload.zhimg.com/v2-%s", img_hash)
-  local response = curl.put(url, {
-    headers = headers,
-    body = binary_data,
-  })
+  local curl_command = string.format(
+    [[curl -s -X PUT https://zhihu-pics-upload.zhimg.com/v2-%s \
+  %s--data-binary @-]],
+    img_hash,
+    curl_headers
+  )
 
-  if response and response.status and response.status >= 200 and response.status < 300 then
-    return response.body
+  -- Sending the binary data to curl command and capturing the response
+  local handle = assert(io.popen(curl_command, "w"))
+  handle:write(binary_data)
+  local response = handle:close()
+  if response then
+    return response
   else
     vim.notify("Failed to upload image: " .. image_path, vim.log.levels.ERROR)
     return nil
