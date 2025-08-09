@@ -101,6 +101,13 @@ local function get_zhihu_cookies_firefox()
   local z_c0_res = vim.system(z_c0_cmd, { text = true }):wait()
 
   if d_c0_res.code ~= 0 or z_c0_res.code ~= 0 then
+    if d_c0_res.stderr:match("database is locked") or z_c0_res.stderr:match("database is locked") then
+      vim.notify(
+        "The database is locked. Please try closing your browser and reload this plugin.",
+        vim.log.levels.ERROR
+      )
+      return { d_c0 = "", z_c0 = "" }
+    end
     vim.notify(
       "Failed to execute sqlite3 command: " .. (d_c0_res.stderr or "") .. (z_c0_res.stderr or ""),
       vim.log.levels.ERROR
@@ -113,7 +120,10 @@ local function get_zhihu_cookies_firefox()
 
   if not d_c0 or not z_c0 then
     if (d_c0 and d_c0:match("database is locked")) or (z_c0 and z_c0:match("database is locked")) then
-      vim.notify("The database is locked. Please try closing your browser and retry.", vim.log.levels.ERROR)
+      vim.notify(
+        "The database is locked. Please try closing your browser and reload this plugin.",
+        vim.log.levels.ERROR
+      )
     else
       vim.notify("Failed to get Zhihu cookies, make sure you are logged in via Firefox", vim.log.levels.ERROR)
     end
@@ -145,6 +155,13 @@ local function get_zhihu_cookies_chrome()
   local z_c0_res = vim.system(z_c0_cmd, { text = true }):wait()
 
   if d_c0_res.code ~= 0 or z_c0_res.code ~= 0 then
+    if d_c0_res.stderr:match("database is locked") or z_c0_res.stderr:match("database is locked") then
+      vim.notify(
+        "The database is locked. Please try closing your browser and reload this plugin.",
+        vim.log.levels.ERROR
+      )
+      return { d_c0 = "", z_c0 = "" }
+    end
     vim.notify(
       "Failed to execute sqlite3 command: " .. (d_c0_res.stderr or "") .. (z_c0_res.stderr or ""),
       vim.log.levels.ERROR
@@ -157,7 +174,10 @@ local function get_zhihu_cookies_chrome()
 
   if not d_c0 or not z_c0 then
     if (d_c0 and d_c0:match("database is locked")) or (z_c0 and z_c0:match("database is locked")) then
-      vim.notify("The database is locked. Please try closing your browser and retry.", vim.log.levels.ERROR)
+      vim.notify(
+        "The database is locked. Please try closing your browser and reload this plugin.",
+        vim.log.levels.ERROR
+      )
     else
       vim.notify("Failed to get Zhihu cookies, make sure you are logged in via Firefox", vim.log.levels.ERROR)
     end
