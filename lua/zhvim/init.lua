@@ -9,34 +9,13 @@ M.setup = function(opts)
   else
     local config = vim.tbl_deep_extend("force", default_config, opts or {})
 
-    if config.browser == "firefox" then
-      local cookies = require("zhvim.get_cookie").get_zhihu_cookies(config.browser)
-      local cookie_str = cookies and require("zhvim.util").table_to_cookie(cookies) or nil
-      if cookie_str and cookies.d_c0 ~= "" and cookies.z_c0 ~= "" then
-        vim.g.zhvim_cookies = cookie_str
-      else
-        vim.notify(
-          "Failed to get Zhihu cookies from "
-            .. config.browser
-            .. ", trying to load from environment variable `ZHIVIM_COOKIES`.",
-          vim.log.levels.WARN
-        )
-        vim.g.zhvim_cookies = vim.env.ZHIVIM_COOKIES
-        if not vim.g.zhvim_cookies then
-          vim.notify(
-            "Could not find cookies, please set ZHIVIM_COOKIES environment variable or set opts.browser = 'firefox' to use Firefox cookies.",
-            vim.log.levels.ERROR
-          )
-        end
-      end
-    else
+    if vim.env.ZHIVIM_COOKIES and vim.env.ZHIVIM_COOKIES ~= "" then
       vim.g.zhvim_cookies = vim.env.ZHIVIM_COOKIES
-      if not vim.g.zhvim_cookies then
-        vim.notify(
-          "Could not find cookies, please set ZHIVIM_COOKIES environment variable or set opts.browser = 'firefox' to use Firefox cookies.",
-          vim.log.levels.ERROR
-        )
-      end
+    else
+      vim.notify(
+        "Failed to load Zhihu cookies, try to run `:ZhihuAuth` and reload plugin, or set up your cookie in `vim.g.zhvim_cookies`.",
+        vim.log.levels.WARN
+      )
     end
 
     require("zhvim.commands").setup_commands(config)

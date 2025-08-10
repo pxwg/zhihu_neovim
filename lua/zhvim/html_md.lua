@@ -1,17 +1,12 @@
+local util = require("zhvim.util")
 local M = {}
 
 ---@class md_content
 ---@field content_md string HTML content to be parsed
 ---@field title_md string Title of the HTML content
 
--- Helper function to get the plugin root directory
 local function get_plugin_root()
-  local source = debug.getinfo(2, "S").source
-  local file = string.sub(source, 2) -- Remove the '@' prefix
-  local dir = string.match(file, "(.*/)")
-
-  -- Navigate up two directories: from lua/utils/ to the plugin root
-  return string.gsub(dir, "lua/zhvim/$", "")
+  return util.get_plugin_root()
 end
 
 ---Parse HTML content to extract user, article, and title information using a Python script.

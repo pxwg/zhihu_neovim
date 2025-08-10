@@ -212,4 +212,14 @@ function M.table_to_cookie(t)
   return table.concat(cookie, "; ")
 end
 
+-- Helper function to get the plugin root directory
+function M.get_plugin_root()
+  local source = debug.getinfo(2, "S").source
+  local file = string.sub(source, 2) -- Remove the '@' prefix
+  local dir = string.match(file, "(.*/)")
+
+  -- Navigate up two directories: from lua/utils/ to the plugin root
+  return string.gsub(dir, "lua/zhvim/$", "")
+end
+
 return M

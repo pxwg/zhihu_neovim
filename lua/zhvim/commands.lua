@@ -1,16 +1,17 @@
 local M = {}
+local auth = require("zhvim.get_cookie")
 local buf_id = require("zhvim.buf_id")
 local html = require("zhvim.md_html")
 local md = require("zhvim.html_md")
+local script = require("zhvim.script")
 local sync = require("zhvim.article_sync")
 local upl = require("zhvim.article_upload")
 local util = require("zhvim.util")
-local cookies = vim.g.zhvim_cookies
-local script = require("zhvim.script")
 
 ---@param cmd_opts table? Options for the command
 ---@param opts ZhnvimConfigs User configs
 local function init_draft(cmd_opts, opts)
+  local cookies = vim.g.zhvim_cookies
   if not cookies or cookies == "" then
     vim.api.nvim_echo({ { "Please set zhvim_cookies before using this command.", "ErrorMsg" } }, true, { err = true })
     return
@@ -125,6 +126,7 @@ local function open_draft()
 end
 
 local function sync_article()
+  local cookies = vim.g.zhvim_cookies
   local filepath = vim.api.nvim_buf_get_name(0)
   local url_template = "https://zhuanlan.zhihu.com/p/"
   local file_id = buf_id.check_id(filepath)
@@ -133,7 +135,15 @@ local function sync_article()
     return
   end
   local url = url_template .. file_id
-  local output = sync.download_zhihu_article(url, cookies)
+  local output, error = sync.download_zhihu_article(url, cookies)
+  if not output or error then
+    vim.api.nvim_echo(
+      { { "Failed to download article: " .. (error or "Unknown error"), "ErrorMsg" } },
+      true,
+      { err = true }
+    )
+    return
+  end
   local html_content = md.parse_zhihu_article(output)
   html_content.content = md.convert_html_to_md(html_content.content)
   html_content.title = html_content.title:gsub(" -- 知乎$", "") or "Untitled"
@@ -166,6 +176,14 @@ function M.setup_commands(opts)
   end, { nargs = "*", complete = "file" })
   vim.api.nvim_create_user_command("ZhihuOpen", open_draft, {})
   vim.api.nvim_create_user_command("ZhihuSync", sync_article, {})
+  vim.api.nvim_create_user_command("ZhihuAuth", function(cmd_opts)
+    auth.load_cookie(cmd_opts.fargs[1] or opts.browser)
+  end, {
+    nargs = "*",
+    complete = function()
+      return { "chrome", "firefox" }
+    end,
+  })
 end
 
 ---@param opts ZhnvimConfigs Options for the autocmds

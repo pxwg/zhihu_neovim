@@ -1,3 +1,4 @@
+local utils = require("zhvim.util")
 local M = {}
 
 ---Get the Firefox cookies.sqlite path for the current user
@@ -65,6 +66,7 @@ local function get_chrome_cookies_path()
 end
 
 ---Get cookies path for a specified browser
+---d_c0 and z_c0 are the cookies needed for Zhihu update articles
 ---@param browser "firefox"|"chrome" Browser name: "firefox" or "chrome"
 ---@return string|nil cookies_path Full path to cookies file or nil if not found
 function M.get_cookies_path(browser)
@@ -83,43 +85,37 @@ end
 local function get_zhihu_cookies_firefox()
   local cookies_db = get_firefox_cookies_path()
   if not cookies_db then
-    return { d_c0 = nil, z_c0 = nil }
+    return {}
   end
-
-  local d_c0_cmd = {
+  local query_cmd = {
     "sqlite3",
     cookies_db,
-    "SELECT value FROM moz_cookies WHERE host='.zhihu.com' AND name='d_c0';",
+    "SELECT name, value FROM moz_cookies WHERE host='.zhihu.com';",
   }
-  local z_c0_cmd = {
-    "sqlite3",
-    cookies_db,
-    "SELECT value FROM moz_cookies WHERE host='.zhihu.com' AND name='z_c0';",
-  }
+  local res = vim.system(query_cmd, { text = true }):wait()
 
-  local d_c0_res = vim.system(d_c0_cmd, { text = true }):wait()
-  local z_c0_res = vim.system(z_c0_cmd, { text = true }):wait()
-
-  if d_c0_res.code ~= 0 or z_c0_res.code ~= 0 then
-    if d_c0_res.stderr:match("database is locked") or z_c0_res.stderr:match("database is locked") then
+  if res.code ~= 0 then
+    if res.stderr and res.stderr:match("database is locked") then
       vim.notify(
         "The database is locked. Please try closing your browser and reload this plugin.",
         vim.log.levels.ERROR
       )
-      return { d_c0 = "", z_c0 = "" }
+      return {}
     end
-    vim.notify(
-      "Failed to execute sqlite3 command: " .. (d_c0_res.stderr or "") .. (z_c0_res.stderr or ""),
-      vim.log.levels.ERROR
-    )
-    return { d_c0 = "", z_c0 = "" }
+    vim.notify("Failed to execute sqlite3 command: " .. (res.stderr or ""), vim.log.levels.ERROR)
+    return {}
   end
 
-  local d_c0 = vim.trim(d_c0_res.stdout or "")
-  local z_c0 = vim.trim(z_c0_res.stdout or "")
+  local cookies = {}
+  for line in (res.stdout or ""):gmatch("[^\r\n]+") do
+    local name, value = line:match("^(.-)|(.+)$")
+    if name and value then
+      cookies[name] = value
+    end
+  end
 
-  if not d_c0 or not z_c0 then
-    if (d_c0 and d_c0:match("database is locked")) or (z_c0 and z_c0:match("database is locked")) then
+  if vim.tbl_isempty(cookies) then
+    if res.stdout and res.stdout:match("database is locked") then
       vim.notify(
         "The database is locked. Please try closing your browser and reload this plugin.",
         vim.log.levels.ERROR
@@ -129,7 +125,7 @@ local function get_zhihu_cookies_firefox()
     end
   end
 
-  return { d_c0 = d_c0, z_c0 = z_c0 }
+  return cookies
 end
 
 ---Extract Zhihu cookies from Chrome database
@@ -189,13 +185,67 @@ end
 ---Get Zhihu cookies for a specified browser
 ---@param browser "firefox"|"chrome" Browser name to extract cookies from
 function M.get_zhihu_cookies(browser)
+  local plugin_root = utils.get_plugin_root()
+  local result = {}
+  local cookie_str = ""
+  local tmp_dir = vim.fn.tempname()
+  local python_executable = plugin_root .. "/.venv/bin/python"
+
+  if browser == "chrome" then
+    local python_script_chrome = plugin_root .. "/util/auth_chrome.py"
+    local mac_chrome = [[/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir=]]
+      .. tmp_dir
+      .. [[ --no-first-run --no-default-browser-check --homepage=about:blank --disable-default-apps]]
+    local id = vim.fn.jobstart(mac_chrome, { detach = true })
+    result = vim.system({ python_executable, python_script_chrome }, { text = true }):wait()
+
+    cookie_str = result.stdout or ""
+
+    vim.fn.jobstop(id)
+    if result.code ~= 0 then
+      vim.notify("Failed to get Zhihu cookies: " .. (result.stderr or ""), vim.log.levels.ERROR)
+      return {}
+    end
+  end
   if browser == "firefox" then
-    return get_zhihu_cookies_firefox()
-  elseif browser == "chrome" then
-    return get_zhihu_cookies_chrome()
+    -- TODO: Implement Firefox cookie extraction
+  end
+  local cookies = vim.json.decode(cookie_str)
+  cookies = cookies[1]
+  return cookies
+end
+
+---Load Zhihu cookies into vim.g.zhvim_cookies
+---@param browser "firefox"|"chrome" Configuration table containing browser option
+function M.load_cookie(browser)
+  if browser == "chrome" then
+    local cookies = M.get_zhihu_cookies(browser)
+    local cookie_str = cookies and require("zhvim.util").table_to_cookie(cookies) or nil
+    if cookie_str and cookies.d_c0 ~= "" and cookies.z_c0 ~= "" then
+      vim.g.zhvim_cookies = cookie_str
+      vim.fn.setenv("ZHIVIM_COOKIES", cookie_str)
+    else
+      vim.notify(
+        "Failed to get Zhihu cookies from "
+          .. browser
+          .. ", trying to load from environment variable `ZHIVIM_COOKIES`...",
+        vim.log.levels.WARN
+      )
+      vim.g.zhvim_cookies = vim.env.ZHIVIM_COOKIES
+      if not vim.g.zhvim_cookies then
+        vim.notify("Could not find cookies, please set `ZHIVIM_COOKIES` environment variable.", vim.log.levels.ERROR)
+      end
+    end
+  elseif browser == "firefox" then
+    --TODO: Implement Firefox cookie extraction
   else
-    vim.notify("Unsupported browser: " .. browser .. ". Only firefox and chrome are supported.", vim.log.levels.ERROR)
-    return { d_c0 = "", z_c0 = "" }
+    vim.g.zhvim_cookies = vim.env.ZHIVIM_COOKIES
+    if not vim.g.zhvim_cookies then
+      vim.notify(
+        "Could not find cookies, please set `ZHIVIM_COOKIES` environment variable or set `opts.browser = 'firefox'|'chrome'` to get cookies from browser.",
+        vim.log.levels.ERROR
+      )
+    end
   end
 end
 
