@@ -232,7 +232,8 @@ function M.get_zhihu_cookies(browser, opts)
     end
   end
   if browser == "firefox" then
-    -- TODO: Implement Firefox cookie extraction
+    -- TODO: Implement Firefox cookie extraction with a similar approach instead of this
+    get_zhihu_cookies_firefox()
   end
   local cookies = vim.json.decode(cookie_str)
   cookies = cookies[1]
