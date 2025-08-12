@@ -198,7 +198,7 @@ function M.get_zhihu_cookies(browser, opts)
     local chrome_path = opts.browser["chrome"].path
     local chrome_cmd = {
       chrome_path,
-      "--remote-debugging-port=9222",
+      "--remote-debugging-port=" .. opts.browser["chrome"].port,
       "--user-data-dir=" .. tmp_dir,
       "--no-first-run",
       "--no-default-browser-check",

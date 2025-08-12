@@ -14,6 +14,7 @@ local util = require("zhvim.util")
 ---@field timeout? number The timeout for the browser script, in seconds.
 ---@field path? string The path to the browser executable. By default, it will use the system's default browser path.
 ---@field init_url? string The initial URL to open in the browser for cookie extraction. We recommend using your Zhihu user homepage, for example, `https://www.zhihu.com/people/bu-hui-fei-de-qi-e-71`.
+---@field port? number The port to use for control browser. By default, it will use 6000 for Firefox and 9222 for Chrome.
 
 ---@class ZhnvimConfigs
 ---@field script table<string, ZhnvimConfigs.FiletypesScript> A table of filetype scripts.
@@ -32,11 +33,13 @@ local default_config = {
       timeout = 10,
       init_url = "https://www.zhihu.com/",
       path = util.get_browser_path("firefox") or "Unknown Firefox path",
+      port = 6000,
     },
     chrome = {
       timeout = 10,
       init_url = "https://www.zhihu.com/",
       path = util.get_browser_path("chrome") or "Unknown Chrome path",
+      port = 9222,
     },
   },
 }
