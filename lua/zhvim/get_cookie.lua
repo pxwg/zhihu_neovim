@@ -209,10 +209,19 @@ function M.get_zhihu_cookies(browser, opts)
 
     local timeout = opts and opts.browser["chrome"].timeout or 10
     local url = opts and opts.browser["chrome"].init_url or "https://www.zhihu.com/"
+    local port = opts and opts.browser["chrome"].port or 9222
 
-    result = vim
-      .system({ python_executable, python_script_chrome, "--timeout", tostring(timeout), "--url", url }, { text = true })
-      :wait()
+    local script_cmd = {
+      python_executable,
+      python_script_chrome,
+      "--timeout",
+      tostring(timeout),
+      "--url",
+      url,
+      "--port",
+      tostring(port),
+    }
+    result = vim.system(script_cmd, { text = true }):wait()
 
     cookie_str = result.stdout or ""
 

@@ -44,12 +44,12 @@ def suppress_all_output():
         devnull_err.close()
 
 
-def connect_chrome(timeout=10, url="https://www.zhihu.com/"):
+def connect_chrome(timeout=10, url="https://www.zhihu.com/", port=9222):
     start_time = time.time()
     while True:
         try:
             with suppress_all_output():
-                browser = pychrome.Browser(url="http://localhost:9222")
+                browser = pychrome.Browser(url="http://localhost:" + str(port))
                 _ = browser.list_tab()
                 tabs = browser.list_tab()
                 if not tabs:
@@ -99,11 +99,19 @@ def main():
         default="https://www.zhihu.com/",
         help="URL to open in Chrome",
     )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=9222,
+        help="Port for Chrome remote debugging",
+    )
     args = parser.parse_args()
 
     last_cookies = None
     try:
-        browser, tab = connect_chrome(timeout=args.timeout, url=args.url)
+        browser, tab = connect_chrome(
+            timeout=args.timeout, url=args.url, port=args.port
+        )
     except TimeoutError as e:
         print(str(e))
         print("[]")
