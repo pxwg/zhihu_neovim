@@ -170,20 +170,40 @@ end
 
 --- Module for setting up commands
 ---@param opts ZhnvimConfigs Options for the commands
----@param err_browser boolean Flag indicating if there is an error with the browser configuration
+---@param err_browser ZhnvimErrBrowser Flag indicating if there is an error with the browser configuration
 function M.setup_commands(opts, err_browser)
   vim.api.nvim_create_user_command("ZhihuDraft", function(cmd_opts)
     init_draft(cmd_opts, opts)
   end, { nargs = "*", complete = "file" })
   vim.api.nvim_create_user_command("ZhihuOpen", open_draft, {})
   vim.api.nvim_create_user_command("ZhihuSync", sync_article, {})
-  if not err_browser then
+  if err_browser.chrome and err_browser.firefox then
+    vim.api.nvim_echo(
+      { { "All browser configurations are incorrect. Please check your settings.", "ErrorMsg" } },
+      true,
+      { err = true }
+    )
+    return
+  else
     vim.api.nvim_create_user_command("ZhihuAuth", function(cmd_opts)
-      auth.load_cookie(cmd_opts.fargs[1], opts)
+      auth.load_cookie(cmd_opts.fargs[1], opts, cmd_opts.fargs[2])
     end, {
       nargs = "*",
-      complete = function()
-        return { "chrome", "firefox" }
+      complete = function(arg_lead, cmd_line, cursor_pos)
+        local args = vim.split(cmd_line, "%s+")
+        if #args == 2 then
+          local available = {}
+          if not err_browser.chrome then
+            table.insert(available, "chrome")
+          end
+          if not err_browser.firefox then
+            table.insert(available, "firefox")
+          end
+          return available
+        elseif #args == 3 and (args[2] == "chrome" or args[2] == "firefox") then
+          return { "interface", "no-interface" }
+        end
+        return {}
       end,
     })
   end

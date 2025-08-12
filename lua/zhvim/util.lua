@@ -271,4 +271,45 @@ function M.get_browser_path(browser)
   end
 end
 
+---Get the Firefox cookies.sqlite path for the current user
+---@return string|nil cookies_path Full path to cookies.sqlite or nil if not found
+function M.get_firefox_cookies_path()
+  local home = os.getenv("HOME")
+  if not home then
+    vim.notify("Cannot get HOME environment variable", vim.log.levels.ERROR)
+    return nil
+  end
+
+  local sysname = vim.loop.os_uname().sysname
+  local profile_dir = nil
+
+  if sysname == "Darwin" then
+    -- macOS Firefox profile directory
+    local base = home .. "/Library/Application Support/Firefox/Profiles"
+    local handle = io.popen("find '" .. base .. "' -name '*.default-release' -type d 2>/dev/null")
+    if handle then
+      profile_dir = handle:read("*l")
+      handle:close()
+    end
+  elseif sysname == "Linux" then
+    -- Linux Firefox profile directory
+    local base = home .. "/.mozilla/firefox"
+    local handle = io.popen("find '" .. base .. "' -name '*.default-release' -type d 2>/dev/null")
+    if handle then
+      profile_dir = handle:read("*l")
+      handle:close()
+    end
+  else
+    vim.notify("Unsupported OS: " .. sysname .. ". Only macOS and Linux are supported.", vim.log.levels.ERROR)
+    return nil
+  end
+
+  if profile_dir then
+    return profile_dir .. "/cookies.sqlite"
+  else
+    vim.notify("Cannot find Firefox cookies.sqlite", vim.log.levels.ERROR)
+    return nil
+  end
+end
+
 return M
