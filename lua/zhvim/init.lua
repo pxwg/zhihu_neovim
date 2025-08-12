@@ -8,6 +8,17 @@ M.setup = function(opts)
     return
   else
     local config = vim.tbl_deep_extend("force", default_config, opts or {})
+    local err_browser = false
+    if
+      config.browser["chrome"].path == "Unknown Chrome path"
+      or config.browser["firefox"].path == "Unknown Firefox path"
+    then
+      vim.notify(
+        "You have not set up the Chrome browser path, please set it in `vim.g.zhvim_browser_chrome_path` or `vim.g.zhvim_browser_firefox_path`.",
+        vim.log.levels.WARN
+      )
+      err_browser = true
+    end
 
     if vim.env.ZHIVIM_COOKIES and vim.env.ZHIVIM_COOKIES ~= "" then
       vim.g.zhvim_cookies = vim.env.ZHIVIM_COOKIES
@@ -18,7 +29,7 @@ M.setup = function(opts)
       )
     end
 
-    require("zhvim.commands").setup_commands(config)
+    require("zhvim.commands").setup_commands(config, err_browser)
     require("zhvim.commands").setup_autocmd(config)
   end
 end

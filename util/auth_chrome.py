@@ -1,3 +1,4 @@
+import argparse
 import pychrome
 import json
 import time
@@ -43,7 +44,8 @@ def suppress_all_output():
         devnull_err.close()
 
 
-def connect_chrome():
+def connect_chrome(timeout=10, url="https://www.zhihu.com/"):
+    start_time = time.time()
     while True:
         try:
             with suppress_all_output():
@@ -51,14 +53,18 @@ def connect_chrome():
                 _ = browser.list_tab()
                 tabs = browser.list_tab()
                 if not tabs:
-                    tab = browser.new_tab("https://www.zhihu.com/")
+                    tab = browser.new_tab(url)
                 else:
                     tab = tabs[0]
                 tab.start()
-                tab.Page.navigate(url="https://www.zhihu.com/")
+                tab.Page.navigate(url=url)
                 tab.call_method("Network.enable")
             return browser, tab
         except Exception:
+            if time.time() - start_time > timeout:
+                raise TimeoutError(
+                    f"Timeout waiting for Chrome after {timeout} seconds."
+                )
             time.sleep(2)
 
 
@@ -80,8 +86,29 @@ def cleanup_tab(tab):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=10,
+        help="Timeout for waiting Chrome to open (seconds)",
+    )
+    parser.add_argument(
+        "--url",
+        type=str,
+        default="https://www.zhihu.com/",
+        help="URL to open in Chrome",
+    )
+    args = parser.parse_args()
+
     last_cookies = None
-    browser, tab = connect_chrome()
+    try:
+        browser, tab = connect_chrome(timeout=args.timeout, url=args.url)
+    except TimeoutError as e:
+        print(str(e))
+        print("[]")
+        return
+
     try:
         while True:
             with suppress_all_output():

@@ -212,7 +212,7 @@ function M.table_to_cookie(t)
   return table.concat(cookie, "; ")
 end
 
--- Helper function to get the plugin root directory
+---Helper function to get the plugin root directory
 function M.get_plugin_root()
   local source = debug.getinfo(2, "S").source
   local file = string.sub(source, 2) -- Remove the '@' prefix
@@ -220,6 +220,55 @@ function M.get_plugin_root()
 
   -- Navigate up two directories: from lua/utils/ to the plugin root
   return string.gsub(dir, "lua/zhvim/$", "")
+end
+
+---Get system's name
+---@return "macos"|"linux"|"windows"|"unknown"
+function M.get_system_name()
+  local system = vim.loop.os_uname().sysname:lower()
+  if system == "darwin" then
+    return "macos"
+  elseif system == "linux" then
+    return "linux"
+  elseif system == "windows" then
+    return "windows"
+  else
+    return "unknown"
+  end
+end
+
+---Get the path to the browser executable based on the system name.
+---Used to determine the browser path for cookie extraction with Chrome or Firefox.
+---@param browser "firefox"|"chrome"
+---@return string|nil path The path to the browser executable or nil if not found
+function M.get_browser_path(browser)
+  local system = M.get_system_name()
+  if browser == "firefox" then
+    if system == "macos" then
+      return "/Applications/Firefox.app/Contents/MacOS/firefox"
+    elseif system == "linux" then
+      return "/usr/bin/firefox"
+    elseif system == "windows" then
+      return "C:\\Program Files\\Mozilla Firefox\\firefox.exe"
+    else
+      vim.notify("Unsupported OS for Firefox: " .. system, vim.log.levels.ERROR)
+      return nil
+    end
+  elseif browser == "chrome" then
+    if system == "macos" then
+      return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    elseif system == "linux" then
+      return "/usr/bin/google-chrome"
+    elseif system == "windows" then
+      return "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+    else
+      vim.notify("Unsupported OS for Chrome: " .. system, vim.log.levels.ERROR)
+      return nil
+    end
+  else
+    vim.notify("Unsupported browser: " .. browser, vim.log.levels.ERROR)
+    return nil
+  end
 end
 
 return M

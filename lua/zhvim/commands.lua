@@ -170,20 +170,23 @@ end
 
 --- Module for setting up commands
 ---@param opts ZhnvimConfigs Options for the commands
-function M.setup_commands(opts)
+---@param err_browser boolean Flag indicating if there is an error with the browser configuration
+function M.setup_commands(opts, err_browser)
   vim.api.nvim_create_user_command("ZhihuDraft", function(cmd_opts)
     init_draft(cmd_opts, opts)
   end, { nargs = "*", complete = "file" })
   vim.api.nvim_create_user_command("ZhihuOpen", open_draft, {})
   vim.api.nvim_create_user_command("ZhihuSync", sync_article, {})
-  vim.api.nvim_create_user_command("ZhihuAuth", function(cmd_opts)
-    auth.load_cookie(cmd_opts.fargs[1] or opts.browser)
-  end, {
-    nargs = "*",
-    complete = function()
-      return { "chrome", "firefox" }
-    end,
-  })
+  if not err_browser then
+    vim.api.nvim_create_user_command("ZhihuAuth", function(cmd_opts)
+      auth.load_cookie(cmd_opts.fargs[1], opts)
+    end, {
+      nargs = "*",
+      complete = function()
+        return { "chrome", "firefox" }
+      end,
+    })
+  end
 end
 
 ---@param opts ZhnvimConfigs Options for the autocmds

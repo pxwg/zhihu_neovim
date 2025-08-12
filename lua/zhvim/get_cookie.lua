@@ -184,20 +184,35 @@ end
 
 ---Get Zhihu cookies for a specified browser
 ---@param browser "firefox"|"chrome" Browser name to extract cookies from
-function M.get_zhihu_cookies(browser)
+---@param opts ZhnvimConfigs Configuration options
+function M.get_zhihu_cookies(browser, opts)
   local plugin_root = utils.get_plugin_root()
   local result = {}
   local cookie_str = ""
   local tmp_dir = vim.fn.tempname()
   local python_executable = plugin_root .. "/.venv/bin/python"
 
+  --TODO: MacOS/Linux detection
   if browser == "chrome" then
     local python_script_chrome = plugin_root .. "/util/auth_chrome.py"
-    local mac_chrome = [[/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir=]]
-      .. tmp_dir
-      .. [[ --no-first-run --no-default-browser-check --homepage=about:blank --disable-default-apps]]
-    local id = vim.fn.jobstart(mac_chrome, { detach = true })
-    result = vim.system({ python_executable, python_script_chrome }, { text = true }):wait()
+    local chrome_path = opts.browser["chrome"].path
+    local chrome_cmd = {
+      chrome_path,
+      "--remote-debugging-port=9222",
+      "--user-data-dir=" .. tmp_dir,
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--homepage=about:blank",
+      "--disable-default-apps",
+    }
+    local id = vim.fn.jobstart(chrome_cmd, { detach = true })
+
+    local timeout = opts and opts.browser["chrome"].timeout or 10
+    local url = opts and opts.browser["chrome"].init_url or "https://www.zhihu.com/"
+
+    result = vim
+      .system({ python_executable, python_script_chrome, "--timeout", tostring(timeout), "--url", url }, { text = true })
+      :wait()
 
     cookie_str = result.stdout or ""
 
@@ -217,9 +232,10 @@ end
 
 ---Load Zhihu cookies into vim.g.zhvim_cookies
 ---@param browser "firefox"|"chrome" Configuration table containing browser option
-function M.load_cookie(browser)
+---@param opts ZhnvimConfigs Configuration options
+function M.load_cookie(browser, opts)
   if browser == "chrome" then
-    local cookies = M.get_zhihu_cookies(browser)
+    local cookies = M.get_zhihu_cookies(browser, opts)
     local cookie_str = cookies and require("zhvim.util").table_to_cookie(cookies) or nil
     if cookie_str and cookies.d_c0 ~= "" and cookies.z_c0 ~= "" then
       vim.g.zhvim_cookies = cookie_str
