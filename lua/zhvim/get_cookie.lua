@@ -188,6 +188,7 @@ end
 function M.get_zhihu_cookies(browser, opts)
   local plugin_root = utils.get_plugin_root()
   local result = {}
+  local cookies = {}
   local cookie_str = ""
   local tmp_dir = vim.fn.tempname()
   local python_executable = plugin_root .. "/.venv/bin/python"
@@ -230,13 +231,13 @@ function M.get_zhihu_cookies(browser, opts)
       vim.notify("Failed to get Zhihu cookies: " .. (result.stderr or ""), vim.log.levels.ERROR)
       return {}
     end
+    cookies = vim.json.decode(cookie_str)
+    cookies = cookies[1]
   end
   if browser == "firefox" then
     -- TODO: Implement Firefox cookie extraction with a similar approach instead of this
-    get_zhihu_cookies_firefox()
+    cookies = get_zhihu_cookies_firefox()
   end
-  local cookies = vim.json.decode(cookie_str)
-  cookies = cookies[1]
   return cookies
 end
 
@@ -244,7 +245,7 @@ end
 ---@param browser "firefox"|"chrome" Configuration table containing browser option
 ---@param opts ZhnvimConfigs Configuration options
 function M.load_cookie(browser, opts)
-  if browser == "chrome" then
+  if browser == "chrome" or browser == "firefox" then
     local cookies = M.get_zhihu_cookies(browser, opts)
     local cookie_str = cookies and require("zhvim.util").table_to_cookie(cookies) or nil
     if cookie_str and cookies.d_c0 ~= "" and cookies.z_c0 ~= "" then
@@ -262,8 +263,6 @@ function M.load_cookie(browser, opts)
         vim.notify("Could not find cookies, please set `ZHIVIM_COOKIES` environment variable.", vim.log.levels.ERROR)
       end
     end
-  elseif browser == "firefox" then
-    --TODO: Implement Firefox cookie extraction
   else
     vim.g.zhvim_cookies = vim.env.ZHIVIM_COOKIES
     if not vim.g.zhvim_cookies then
