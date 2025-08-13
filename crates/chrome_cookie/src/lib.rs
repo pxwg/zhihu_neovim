@@ -30,6 +30,7 @@ pub enum ChromeCookieError {
   AesGcmError,
   SqliteError(rusqlite::Error),
   UnsupportedPlatform,
+  JsonErr(String),
 }
 impl fmt::Display for ChromeCookieError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -43,6 +44,7 @@ impl fmt::Display for ChromeCookieError {
       ChromeCookieError::UnsupportedPlatform => {
         write!(f, "Unsupported platform for Chrome cookies")
       }
+      ChromeCookieError::JsonErr(e) => write!(f, "Json error: {}", e),
     }
   }
 }
@@ -79,12 +81,49 @@ impl From<mlua::Error> for ChromeCookieError {
   }
 }
 
+impl From<serde_json::Error> for ChromeCookieError {
+  fn from(err: serde_json::Error) -> Self {
+    ChromeCookieError::JsonErr(err.to_string())
+  }
+}
+
 /// Get the Chrome password from macOS Keychain (legacy versions)
-fn get_chrome_password() -> Result<String, ChromeCookieError> {
+fn get_chrome_password_macos() -> Result<String, ChromeCookieError> {
   let out = Command::new("security")
     .args(&["find-generic-password", "-w", "-s", "Chrome Safe Storage"])
     .output()?;
   Ok(String::from_utf8(out.stdout)?.trim().to_string())
+}
+
+/// Get the Chrome encrypted key from Linux Local State file
+fn get_chrome_password_linux() -> Result<String, ChromeCookieError> {
+  use serde_json::Value;
+  use std::env;
+  use std::fs;
+
+  let home_dir = env::var("HOME").map_err(|_| ChromeCookieError::JsonErr("No HOME env".into()))?;
+  let local_state_path = format!("{}/.config/google-chrome/Local State", home_dir);
+  let data = fs::read_to_string(local_state_path)?;
+  let v: Value = serde_json::from_str(&data)?;
+  let key = v["os_crypt"]["encrypted_key"]
+    .as_str()
+    .ok_or_else(|| ChromeCookieError::JsonErr("No encrypted_key found".into()))?;
+  Ok(key.to_string())
+}
+
+fn get_chrome_password() -> Result<String, ChromeCookieError> {
+  #[cfg(target_os = "macos")]
+  {
+    get_chrome_password_macos()
+  }
+  #[cfg(target_os = "linux")]
+  {
+    get_chrome_password_linux()
+  }
+  #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+  {
+    Err(ChromeCookieError::UnsupportedPlatform)
+  }
 }
 
 /// Get the master key for decrypting Chrome cookies on macOS (Unused in legacy versions)
