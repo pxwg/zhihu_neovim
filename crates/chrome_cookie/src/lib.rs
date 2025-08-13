@@ -16,6 +16,7 @@ use sha1::Sha1;
 use std::fs;
 use std::path::PathBuf;
 use std::{error::Error, fmt, process::Command};
+pub mod encrypt;
 
 const SALT: &[u8] = b"saltysalt";
 type Aes128Cbc = Cbc<Aes128, Pkcs7>;
@@ -28,6 +29,7 @@ pub enum ChromeCookieError {
   IoError(std::io::Error),
   AesGcmError,
   SqliteError(rusqlite::Error),
+  UnsupportedPlatform,
 }
 impl fmt::Display for ChromeCookieError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -38,6 +40,9 @@ impl fmt::Display for ChromeCookieError {
       ChromeCookieError::IoError(e) => write!(f, "IO error: {}", e),
       ChromeCookieError::AesGcmError => write!(f, "AES-GCM decryption error"),
       ChromeCookieError::SqliteError(e) => write!(f, "SQLite error: {}", e),
+      ChromeCookieError::UnsupportedPlatform => {
+        write!(f, "Unsupported platform for Chrome cookies")
+      }
     }
   }
 }
@@ -65,6 +70,12 @@ impl From<rusqlite::Error> for ChromeCookieError {
 impl From<ChromeCookieError> for LuaError {
   fn from(err: ChromeCookieError) -> Self {
     LuaError::external(err)
+  }
+}
+
+impl From<mlua::Error> for ChromeCookieError {
+  fn from(err: mlua::Error) -> Self {
+    ChromeCookieError::UnsupportedPlatform
   }
 }
 
@@ -113,21 +124,62 @@ pub fn decrypt_chrome_cookie_macos_legacy(
   encrypted_value: &[u8],
   password: &str,
 ) -> Result<Option<String>, ChromeCookieError> {
-  let salt = b"saltysalt";
-  let iv = [0u8; 16];
-  let iterations = 1003;
-  let mut key = [0u8; 16];
-  let _ = pbkdf2::<Hmac<Sha1>>(password.as_bytes(), salt, iterations, &mut key);
+  const PREFIX: &[u8] = b"v10";
+  const SALT: &[u8] = b"saltysalt";
+  const IV: [u8; 16] = [b' '; 16];
+  const ITERATIONS: u32 = 1003;
 
-  // Check if encrypted_value is too short
-  if encrypted_value.len() <= 3 {
+  if encrypted_value.len() <= PREFIX.len() || &encrypted_value[..PREFIX.len()] != PREFIX {
     return Ok(None);
   }
 
-  // Skip the first 3 bytes which are metadata which is v10/v11 tag
+  let mut key = [0u8; 16];
+  pbkdf2::<Hmac<Sha1>>(password.as_bytes(), SALT, ITERATIONS, &mut key);
+
+  let encrypted_data = &encrypted_value[PREFIX.len()..];
+
+  let cipher = Aes128Cbc::new_from_slices(&key, &IV)
+    .map_err(|_| ChromeCookieError::DecryptionFailed("AES-CBC init failed".into()))?;
+  let decrypted = cipher
+    .decrypt_vec(encrypted_data)
+    .map_err(|_| ChromeCookieError::DecryptionFailed("AES-CBC decrypt failed".into()))?;
+
+  let cookie_str = String::from_utf8_lossy(&decrypted).to_string();
+  if cookie_str.is_empty() {
+    Ok(None)
+  } else {
+    Ok(Some(cookie_str))
+  }
+}
+
+pub fn derive_linux_key(password: &str) -> [u8; 16] {
+  let salt = b"saltysalt";
+  let iterations = 1;
+  let mut key = [0u8; 16];
+  pbkdf2::<Hmac<Sha1>>(password.as_bytes(), salt, iterations, &mut key);
+  key
+}
+
+/// Decrypt Chrome cookies on Linux
+/// ref: [chromium](https://source.chromium.org/chromium/chromium/src/+/main:components/os_crypt/sync/os_crypt_linux.cc)
+pub fn decrypt_chrome_cookie_linux(
+  encrypted_value: &[u8],
+  password: &str,
+) -> Result<Option<String>, ChromeCookieError> {
+  // Chrome Linux uses "saltysalt" as salt, 1 iteration, 16-byte key, IV of all spaces
+  let iv = [b' '; 16];
+  let key = derive_linux_key(password);
+
+  // Check for v10/v11 prefix
+  if encrypted_value.len() <= 3 {
+    return Ok(None);
+  }
+  let prefix = &encrypted_value[..3];
+  if prefix != b"v10" && prefix != b"v11" {
+    return Ok(None);
+  }
   let encrypted_data = &encrypted_value[3..];
 
-  // Initialize AES-CBC cipher with the derived key and IV
   let cipher = Aes128Cbc::new_from_slices(&key, &iv)
     .map_err(|_| ChromeCookieError::DecryptionFailed("AES-CBC init failed".into()))?;
 
@@ -137,16 +189,34 @@ pub fn decrypt_chrome_cookie_macos_legacy(
 
   let cookie_str = String::from_utf8_lossy(&decrypted);
 
-  // HACK: Clean up the cookie string by removing any trailing backticks
-  let cleaned_cookie = match cookie_str.split('`').last() {
-    Some(content) => content.to_string(),
-    None => cookie_str.to_string(),
-  };
+  // Remove trailing nulls or backticks (if any)
+  let cleaned_cookie = cookie_str
+    .trim_end_matches(|c| c == '\0' || c == '`')
+    .to_string();
 
   if cleaned_cookie.is_empty() {
     Ok(None)
   } else {
     Ok(Some(cleaned_cookie))
+  }
+}
+
+/// Decrypt cookies for macOS and Linux
+pub fn decrypt_chrome_cookie(
+  encrypted_value: &[u8],
+  password: &str,
+) -> Result<Option<String>, ChromeCookieError> {
+  #[cfg(target_os = "macos")]
+  {
+    decrypt_chrome_cookie_macos_legacy(encrypted_value, password)
+  }
+  #[cfg(target_os = "linux")]
+  {
+    decrypt_chrome_cookie_linux(encrypted_value, password)
+  }
+  #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+  {
+    Err(ChromeCookieError::UnsupportedPlatform)
   }
 }
 
@@ -206,9 +276,9 @@ pub fn get_cookies(
     let name: String = row.get(0)?;
     let blob: Vec<u8> = row.get(1)?;
     let val = if blob.len() > 3 {
-      match decrypt_chrome_cookie_macos_legacy(&blob, password)? {
+      match decrypt_chrome_cookie(&blob, password)? {
         Some(v) => v,
-        None => String::from_utf8_lossy(&blob).to_string(),
+        none => String::from_utf8_lossy(&blob).to_string(),
       }
     } else {
       String::from_utf8_lossy(&blob).to_string()
