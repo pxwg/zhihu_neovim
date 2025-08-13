@@ -10,3 +10,4 @@ version = "0.1.0"
 
 [workspace.dependencies]
 markdown_to_html = { path = "crates/markdown_to_html", version = "0.1.0" }
+chrome_cookie = { path = "crates/chrome_cookie", version = "0.1.0" }
