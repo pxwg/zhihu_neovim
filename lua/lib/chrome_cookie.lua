@@ -98,7 +98,14 @@ end
 ---@param host string The host for which to retrieve cookies.
 ---@return table<string, string> A table where keys are cookie names and values are cookie values for the specified host.
 function M.get_cookies_for_host(cookie_path, password, host)
-  return state.chrome_cookie.get_cookies_for_host(cookie_path, password, host)
+  local cookies = state.chrome_cookie.get_cookies_for_host(cookie_path, password, host)
+  local result = {}
+  for k, v in pairs(cookies) do
+    -- HACK: Remove the first 56 rubbish characters from the cookie value
+    v = v:sub(57)
+    result[k] = v
+  end
+  return result
 end
 
 ---Get the value of a specific cookie for a given host.
