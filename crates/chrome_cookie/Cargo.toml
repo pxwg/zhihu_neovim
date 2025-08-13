@@ -1,0 +1,31 @@
+[lib]
+name = "chrome_cookie"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[package]
+name = "chrome_cookie"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+lua51 = ["mlua/lua51"]
+lua52 = ["mlua/lua52"] 
+lua53 = ["mlua/lua53"]
+lua54 = ["mlua/lua54"]
+luajit = ["mlua/luajit"]
+
+[dependencies]
+aes-gcm = "0.10.1"
+base64 = "0.22.1"
+aes = "0.7"
+block-modes = "0.8"
+block-padding = "0.2"
+dir = "0.1.2"
+dirs = "6.0.0"
+mlua = { version = "0.11.2", features = ["module", "serialize"] }
+pbkdf2 = "0.12.2"
+rusqlite = "0.37.0"
+serde_json = "1.0.142"
+sha1 = "0.10.6"
+hmac = "0.12.1"
