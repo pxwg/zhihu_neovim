@@ -221,6 +221,7 @@ function M.extract_zhihu_article_id(url)
     return url:sub(#prefix + 1)
   end
   return nil
+end
 
 ---Helper function to get the plugin root directory
 function M.get_plugin_root()
