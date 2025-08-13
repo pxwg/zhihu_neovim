@@ -73,7 +73,6 @@ fn get_chrome_password() -> Result<String, ChromeCookieError> {
   let out = Command::new("security")
     .args(&["find-generic-password", "-w", "-s", "Chrome Safe Storage"])
     .output()?;
-  // eprintln!("Command output: {}", String::from_utf8_lossy(&out.stdout));
   Ok(String::from_utf8(out.stdout)?.trim().to_string())
 }
 
@@ -109,6 +108,7 @@ fn get_master_key() -> Result<[u8; 16], ChromeCookieError> {
 
 /// Decryption function for Chrome cookies on macOS (legacy version)
 /// ref: [cyberark](https://www.cyberark.com/resources/threat-research-blog/the-current-state-of-browser-cookies)
+/// ref: [chromium](https://source.chromium.org/chromium/chromium/src/+/main:components/os_crypt/sync/os_crypt_mac.mm)
 pub fn decrypt_chrome_cookie_macos_legacy(
   encrypted_value: &[u8],
   password: &str,
