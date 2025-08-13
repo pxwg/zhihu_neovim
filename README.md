@@ -15,6 +15,21 @@ return {
   main = "zhvim",
   ---@type ZhnvimConfigs
   opts = {
+    browser = {
+      firefox = {
+        interface = false,
+        init_url = "https://www.zhihu.com/",
+        path = util.get_browser_path("firefox") or "Unknown Firefox path",
+        db_path = util.get_firefox_cookies_path() or "Unknown Firefox DB path",
+      },
+      chrome = {
+        interface = true,
+        timeout = 10,
+        init_url = "https://www.zhihu.com/",
+        path = util.get_browser_path("chrome") or "Unknown Chrome path",
+        port = 9222,
+      },
+    },
     script = {
       typst = {
         pattern = "*.typ",
@@ -30,11 +45,17 @@ return {
 
 <!-- TODO: Add dependency management. -->
 - Rust tool chain, curl, python.
+- Support for *nix systems only, Windows support is under development (progress may be slow as I don't have a Windows machine).
 
 ## Usage
 
 - Open a local file in neovim;
-- Saving your cookie in global variable `$ZHIVIM_COOKIES` or `vim.g.zhvim_cookies `, this plugin will use it to authenticate your zhihu account and never share it with anyone;
+- Saving your cookie:
+  - With `:ZhihuAuth` command, this plugin will (`browser_name` is `firefox` or `chrome` for now):
+    - If `:ZhihuAuth browser_name interface` is typed, it will open the browser and ask you to login (support for Chrome only), then save the cookie in `vim.g.zhvim_cookies`;
+    - If `:ZhihuAuth browser_name interface` is not typed, it will try to read the cookie from the browser's cookie database (support for Chromium and Firefox) and save it in `vim.g.zhvim_cookies`;
+  - By editing global variable `$ZHIVIM_COOKIES` or `vim.g.zhvim_cookies `, this plugin will use it to authenticate your zhihu account.
+  - This plugin will **NEVER** save your cookie automatically in the file system or share it with others, so you can safely use it in your private environment.
 - Run `:ZhihuDraft` to int/update the draft;
     - If the file type is `markdown`, this plugin will automatically detect it and convert it into a Zhihu-flavored HTML, then using the Zhihu API with your cookie to upload it to your draft box;
   - If the file type matches the `script[filetype]` in the configuration, you need to using some scripts (`pandoc` may be useful) to convert it into [CommonMark](https://spec.commonmark.org/), then this plugin will convert it into Zhihu-flavored HTML and upload it to your draft box;

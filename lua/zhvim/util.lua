@@ -221,6 +221,105 @@ function M.extract_zhihu_article_id(url)
     return url:sub(#prefix + 1)
   end
   return nil
+
+---Helper function to get the plugin root directory
+function M.get_plugin_root()
+  local source = debug.getinfo(2, "S").source
+  local file = string.sub(source, 2) -- Remove the '@' prefix
+  local dir = string.match(file, "(.*/)")
+
+  -- Navigate up two directories: from lua/utils/ to the plugin root
+  return string.gsub(dir, "lua/zhvim/$", "")
+end
+
+---Get system's name
+---@return "macos"|"linux"|"windows"|"unknown"
+function M.get_system_name()
+  local system = vim.loop.os_uname().sysname:lower()
+  if system == "darwin" then
+    return "macos"
+  elseif system == "linux" then
+    return "linux"
+  elseif system == "windows" then
+    return "windows"
+  else
+    return "unknown"
+  end
+end
+
+---Get the path to the browser executable based on the system name.
+---Used to determine the browser path for cookie extraction with Chrome or Firefox.
+---@param browser "firefox"|"chrome"
+---@return string|nil path The path to the browser executable or nil if not found
+function M.get_browser_path(browser)
+  local system = M.get_system_name()
+  if browser == "firefox" then
+    if system == "macos" then
+      return "/Applications/Firefox.app/Contents/MacOS/firefox"
+    elseif system == "linux" then
+      return "/usr/bin/firefox"
+    elseif system == "windows" then
+      return "C:\\Program Files\\Mozilla Firefox\\firefox.exe"
+    else
+      vim.notify("Unsupported OS for Firefox: " .. system, vim.log.levels.ERROR)
+      return nil
+    end
+  elseif browser == "chrome" then
+    if system == "macos" then
+      return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    elseif system == "linux" then
+      return "/usr/bin/google-chrome"
+    elseif system == "windows" then
+      return "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+    else
+      vim.notify("Unsupported OS for Chrome: " .. system, vim.log.levels.ERROR)
+      return nil
+    end
+  else
+    vim.notify("Unsupported browser: " .. browser, vim.log.levels.ERROR)
+    return nil
+  end
+end
+
+---Get the Firefox cookies.sqlite path for the current user
+---@return string|nil cookies_path Full path to cookies.sqlite or nil if not found
+function M.get_firefox_cookies_path()
+  local home = os.getenv("HOME")
+  if not home then
+    vim.notify("Cannot get HOME environment variable", vim.log.levels.ERROR)
+    return nil
+  end
+
+  local sysname = vim.loop.os_uname().sysname
+  local profile_dir = nil
+
+  if sysname == "Darwin" then
+    -- macOS Firefox profile directory
+    local base = home .. "/Library/Application Support/Firefox/Profiles"
+    local handle = io.popen("find '" .. base .. "' -name '*.default-release' -type d 2>/dev/null")
+    if handle then
+      profile_dir = handle:read("*l")
+      handle:close()
+    end
+  elseif sysname == "Linux" then
+    -- Linux Firefox profile directory
+    local base = home .. "/.mozilla/firefox"
+    local handle = io.popen("find '" .. base .. "' -name '*.default-release' -type d 2>/dev/null")
+    if handle then
+      profile_dir = handle:read("*l")
+      handle:close()
+    end
+  else
+    vim.notify("Unsupported OS: " .. sysname .. ". Only macOS and Linux are supported.", vim.log.levels.ERROR)
+    return nil
+  end
+
+  if profile_dir then
+    return profile_dir .. "/cookies.sqlite"
+  else
+    vim.notify("Cannot find Firefox cookies.sqlite", vim.log.levels.ERROR)
+    return nil
+  end
 end
 
 return M

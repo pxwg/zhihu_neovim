@@ -37,12 +37,12 @@ function M.initialize()
 
   -- Try with different extensions based on the platform
   local lib_paths = {
-    plugin_root .. "/build/markdown_to_htmllua51.dylib",
-    plugin_root .. "/build/markdown_to_htmllua51.so",
-    plugin_root .. "/build/markdown_to_htmllua51.dll",
-    plugin_root .. "/build/markdown_to_htmljit.dylib",
-    plugin_root .. "/build/markdown_to_htmljit.so",
-    plugin_root .. "/build/markdown_to_htmljit.dll",
+    plugin_root .. "/build/markdown_to_html_lua51.dylib",
+    plugin_root .. "/build/markdown_to_html_lua51.so",
+    plugin_root .. "/build/markdown_to_html_lua51.dll",
+    plugin_root .. "/build/markdown_to_html_jit.dylib",
+    plugin_root .. "/build/markdown_to_html_jit.so",
+    plugin_root .. "/build/markdown_to_html_jit.dll",
   }
 
   local lib_func = nil
