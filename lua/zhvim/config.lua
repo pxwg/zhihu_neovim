@@ -25,18 +25,21 @@ local util = require("zhvim.util")
 ---@type ZhnvimConfigs
 local default_config = {
   script = {
+    ---@type ZhnvimConfigs.FiletypesScript
     typst = {
       pattern = "*.typ",
       extension = { typ = "typst" },
     },
   },
   browser = {
+    ---@type ZhnvimConfigs.BrowserScript
     firefox = {
       interface = false,
       init_url = "https://www.zhihu.com/",
       path = util.get_browser_path("firefox") or "Unknown Firefox path",
       db_path = util.get_firefox_cookies_path() or "Unknown Firefox DB path",
     },
+    ---@type ZhnvimConfigs.BrowserScript
     chrome = {
       interface = true,
       timeout = 10,

@@ -12,10 +12,24 @@ return {
   "pxwg/zhihu_neovim",
   build = "bash deploy.sh",
   dependencies = { "nvim-lua/plenary.nvim" },
-  ft = { "markdown" },
   main = "zhvim",
   ---@type ZhnvimConfigs
   opts = {
+    browser = {
+      firefox = {
+        interface = false,
+        init_url = "https://www.zhihu.com/",
+        path = util.get_browser_path("firefox") or "Unknown Firefox path",
+        db_path = util.get_firefox_cookies_path() or "Unknown Firefox DB path",
+      },
+      chrome = {
+        interface = true,
+        timeout = 10,
+        init_url = "https://www.zhihu.com/",
+        path = util.get_browser_path("chrome") or "Unknown Chrome path",
+        port = 9222,
+      },
+    },
     script = {
       typst = {
         pattern = "*.typ",
@@ -31,16 +45,22 @@ return {
 
 <!-- TODO: 添加依赖管理 -->
 - Rust 工具链、curl、python。
+- 目前只支持 *nix 系统，Windows 支持正在开发中 (但我手上没有 Windows 电脑，所以进度不会很快)。
 
 ## 使用
 
 - 在 Neovim 中打开本地文件；
-- 将你的 cookie 保存到全局变量 `$ZHIVIM_COOKIES` 或 `vim.g.zhvim_cookies` 中，插件将用它来验证你的知乎账户，且不会与任何第三方分享；
-- 运行 `:ZhihuDraft` 来创建或更新草稿；
-    - 如果文件是 `markdown` 类型，插件会自动将其转换为知乎风格的 HTML 并上传到你的草稿箱；
-    - 如果文件类型匹配配置中的 `script[filetype]`，你需要先通过自定义脚本（如 `pandoc`）将其转换为 [CommonMark](https://spec.commonmark.org/)，之后插件会完成后续的转换和上传；
+- 保存你的 cookie：
+  - 使用 `:ZhihuAuth` 命令（目前支持 `firefox` 或 `chrome`）：
+    - 如果输入 `:ZhihuAuth browser_name interface`，插件会打开浏览器并引导你登录（仅支持 Chrome），然后将 cookie 保存在 `vim.g.zhvim_cookies` 中；
+    - 如果未输入 `:ZhihuAuth browser_name interface`，插件会尝试直接从浏览器的 cookie 数据库读取（支持 Chromium 和 Firefox），并保存到 `vim.g.zhvim_cookies`；
+  - 你也可以手动编辑全局变量 `$ZHIVIM_COOKIES` 或 `vim.g.zhvim_cookies`，插件会用它来验证你的知乎账户。
+  - 插件**绝不会**自动将你的 cookie 保存到文件系统或与他人分享，你可以放心在私有环境中使用。
+- 运行 `:ZhihuDraft` 来初始化或更新草稿；
+  - 如果文件类型为 `markdown`，插件会自动检测并将其转换为知乎风格的 HTML，随后使用你的 cookie 通过知乎 API 上传到草稿箱；
+  - 如果文件类型匹配配置中的 `script[filetype]`，你需要先用脚本（如 `pandoc`）将其转换为 [CommonMark](https://spec.commonmark.org/)，插件会再将其转换为知乎风格 HTML 并上传到草稿箱；
 - 运行 `:ZhihuOpen` 在浏览器中打开草稿箱；
-- 运行 `:ZhihuSync` 进入 diff 页面，对比云端和本地文件的差异，并使用 Neovim 内置的 `diff` 功能进行同步编辑。
+- 运行 `:ZhihuSync` 进入 diff 页面，对比知乎网页版本和本地 Markdown 文件的差异，并使用 Neovim 内置的 diff 功能进行同步编辑。
 
 ### 转换脚本
 
