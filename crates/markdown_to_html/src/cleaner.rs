@@ -138,10 +138,7 @@ fn collect_nodes_to_unwrap(node: &Handle, nodes_to_unwrap: &mut Vec<(Handle, Han
             name: child_name, ..
           } = &child.data
           {
-            if matches!(
-              child_name.local.as_ref(),
-              "img" | "a" | "span" | "code" | "em" | "strong"
-            ) {
+            if matches!(child_name.local.as_ref(), "img" | "a" | "span" | "code") {
               if let Some(parent_weak) = node.parent.take() {
                 if let Some(parent) = parent_weak.upgrade() {
                   nodes_to_unwrap.push((parent, node.clone(), child.clone()));
