@@ -21,6 +21,7 @@ local util = require("zhvim.util")
 ---@class ZhnvimConfigs
 ---@field script table<string, ZhnvimConfigs.FiletypesScript> A table of filetype scripts.
 ---@field browser? { firefox?: ZhnvimConfigs.BrowserScript, chrome?: ZhnvimConfigs.BrowserScript } The browser which has already logged in Zhihu, used to extract cookies from the browser.
+---@field default_browser? "chrome"|"firefox" The default browser to use for cookie extraction. If not set, it will try chrome first.
 
 ---@type ZhnvimConfigs
 local default_config = {
@@ -31,6 +32,7 @@ local default_config = {
       extension = { typ = "typst" },
     },
   },
+  default_browser = "chrome", -- Default browser to use for cookie extraction, can be "firefox" or "chrome"
   browser = {
     ---@type ZhnvimConfigs.BrowserScript
     firefox = {
