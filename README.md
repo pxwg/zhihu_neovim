@@ -15,6 +15,7 @@ return {
   main = "zhvim",
   ---@type ZhnvimConfigs
   opts = {
+    default_browser = "chrome",
     browser = {
       firefox = {
         interface = false,
@@ -61,6 +62,7 @@ return {
   - If the file type matches the `script[filetype]` in the configuration, you need to using some scripts (`pandoc` may be useful) to convert it into [CommonMark](https://spec.commonmark.org/), then this plugin will convert it into Zhihu-flavored HTML and upload it to your draft box;
 - Run `:ZhihuOpen` to open the draft box in your browser;
 - Run `:ZhihuSync` to enter the diff page, compare the differences between the Zhihu web version and the local Markdown file, and use Neovim's built-in `diff` feature to edit the differences.
+- Run `:ZhihuLink attach` or `:ZhihuLink detach` to attach or detach the current file with the Zhihu article, allowing you to edit the file and synchronize it with the Zhihu article.
 
 ### Conversion Script
 

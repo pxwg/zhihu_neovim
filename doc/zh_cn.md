@@ -15,6 +15,7 @@ return {
   main = "zhvim",
   ---@type ZhnvimConfigs
   opts = {
+    default_browser = "chrome",
     browser = {
       firefox = {
         interface = false,
@@ -60,7 +61,8 @@ return {
   - 如果文件类型为 `markdown`，插件会自动检测并将其转换为知乎风格的 HTML，随后使用你的 cookie 通过知乎 API 上传到草稿箱；
   - 如果文件类型匹配配置中的 `script[filetype]`，你需要先用脚本（如 `pandoc`）将其转换为 [CommonMark](https://spec.commonmark.org/)，插件会再将其转换为知乎风格 HTML 并上传到草稿箱；
 - 运行 `:ZhihuOpen` 在浏览器中打开草稿箱；
-- 运行 `:ZhihuSync` 进入 diff 页面，对比知乎网页版本和本地 Markdown 文件的差异，并使用 Neovim 内置的 diff 功能进行同步编辑。
+- 运行 `:ZhihuSync` 进入 diff 页面，对比知乎网页版本和本地 Markdown 文件的差异，并使用 Neovim 内置的 diff 功能进行同步编辑；
+- 运行 `:ZhihuLink attach` 或 `:ZhihuLink detach` 来将当前文件与知乎文章关联或解除关联，进而编辑文件并同步到知乎文章。
 
 ### 转换脚本
 
