@@ -1,20 +1,26 @@
+---
 name: Rust Test
 
-on:
+"on":
   push:
-    branches: [ main ]
+    paths-ignore:
+      - "**.md"
+      - doc/*
   pull_request:
-    branches: [ main ]
+    paths-ignore:
+      - "**.md"
+      - doc/*
+  workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: moonrepo/setup-rust@v1
         with:
           toolchain: stable
           override: true
