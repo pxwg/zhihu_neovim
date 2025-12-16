@@ -6,7 +6,39 @@ Using [neovim](https://github.com/neovim/neovim) to level up your [zhihu](https:
 
 ## Installation
 
-> Using `lazy.nvim`
+### rocks.nvim
+
+#### Command style
+
+```vim
+:Rocks install zhihu_neovim
+```
+
+#### Declare style
+
+`~/.config/nvim/rocks.toml`:
+
+```toml
+[plugins]
+"zhihu_neovim" = "scm"
+```
+
+Then
+
+```vim
+:Rocks sync
+```
+
+or:
+
+```sh
+$ luarocks --lua-version 5.1 --local --tree ~/.local/share/nvim/rocks install zhihu_neovim
+# ~/.local/share/nvim/rocks is the default rocks tree path
+# you can change it according to your vim.g.rocks_nvim.rocks_path
+```
+
+### lazy.nvim
+
 ```lua
 return {
   "pxwg/zhihu_neovim",
@@ -40,6 +72,13 @@ return {
     },
   },
 }
+```
+
+After building, a DLL will occur in `build/`. Add the following code to your
+`init.lua`:
+
+```lua
+package.cpath = package.cpath .. ';/the/path/of/build/?.so'
 ```
 
 ## Dependency
