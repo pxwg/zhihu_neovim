@@ -35,7 +35,7 @@ function M.create_autocmds(augroup_id)
     group = augroup_id,
     callback = function()
       M.init()
-      require "zhihu.nvim".read_cb()
+      require "zhihu.nvim.callback".read_cb()
     end
   })
   vim.api.nvim_create_autocmd("BufWriteCmd", {
@@ -43,7 +43,7 @@ function M.create_autocmds(augroup_id)
     group = augroup_id,
     callback = function()
       M.init()
-      require "zhihu.nvim".write_cb()
+      require "zhihu.nvim.callback".write_cb()
     end
   })
 end
